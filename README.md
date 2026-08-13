@@ -80,19 +80,19 @@ All APIs are in one project. Follow these steps once:
 
 1. Go to **APIs & Services → Credentials**
 2. Click **+ Create Credentials → API Key**
-3. Copy the key → paste it in `FrontEnd/.env` as `NEXT_PUBLIC_GOOGLE_MAPS_KEY`
+3. Copy the key → paste it in `FrontEnd/.env` as `GOOGLE_MAPS_API_KEY`
 4. (Optional but recommended) Click **Edit API Key** → restrict to your domain
 
 ### Step 3 — Enable the following 4 APIs
 
 Go to **APIs & Services → Library** and search + enable each one:
 
-| # | API Name | Used For |
-|---|----------|----------|
-| 1 | **Maps JavaScript API** | Delivery boy live map & route display |
-| 2 | **Directions API** | Turn-by-turn route calculation on delivery map |
-| 3 | **Geocoding API** | Convert coordinates ↔ addresses |
-| 4 | **Places API (New)** | Address autocomplete in checkout form |
+| #   | API Name                | Used For                                       |
+| --- | ----------------------- | ---------------------------------------------- |
+| 1   | **Maps JavaScript API** | Delivery boy live map & route display          |
+| 2   | **Directions API**      | Turn-by-turn route calculation on delivery map |
+| 3   | **Geocoding API**       | Convert coordinates ↔ addresses                |
+| 4   | **Places API (New)**    | Address autocomplete in checkout form          |
 
 > **How to enable:** Search the API name → Click on it → Click blue **"Enable"** button → Wait ~2 minutes
 
@@ -102,27 +102,27 @@ Go to **APIs & Services → Library** and search + enable each one:
 
 ### FrontEnd `.env`
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_API_BASE_URL` | Backend URL (default: `http://localhost:8000/api/v1`) |
-| `NEXT_PUBLIC_RESTAURANT_ID` | Your restaurant's MongoDB `_id` |
-| `NEXT_PUBLIC_GOOGLE_MAPS_KEY` | GCP API key (needs 4 APIs enabled above) |
+| Variable                    | Description                                           |
+| --------------------------- | ----------------------------------------------------- |
+| `NEXT_PUBLIC_API_BASE_URL`  | Backend URL (default: `http://localhost:8000/api/v1`) |
+| `NEXT_PUBLIC_RESTAURANT_ID` | Your restaurant's MongoDB `_id`                       |
+| `GOOGLE_MAPS_API_KEY`       | GCP API key (needs 4 APIs enabled above)              |
 
 ### BackEnd `.env`
 
-| Variable | Description |
-|----------|-------------|
-| `PORT` | Server port (default: 8000) |
-| `MONGODB_URI` | MongoDB Atlas connection string |
-| `ACCESS_TOKEN_SECRET` | Any long random string for JWT |
-| `REFRESH_TOKEN_SECRET` | Any long random string for JWT |
-| `CLOUDINARY_CLOUD_NAME` | From cloudinary.com dashboard |
-| `CLOUDINARY_API_KEY` | From cloudinary.com dashboard |
-| `CLOUDINARY_API_SECRET` | From cloudinary.com dashboard |
-| `SMTP_USER` | Gmail address for sending emails |
-| `SMTP_PASS` | Gmail App Password (16 chars, not your login password) |
-| `RAZORPAY_KEY_ID` | From razorpay.com → Settings → API Keys |
-| `RAZORPAY_KEY_SECRET` | From razorpay.com → Settings → API Keys |
+| Variable                | Description                                            |
+| ----------------------- | ------------------------------------------------------ |
+| `PORT`                  | Server port (default: 8000)                            |
+| `MONGODB_URI`           | MongoDB Atlas connection string                        |
+| `ACCESS_TOKEN_SECRET`   | Any long random string for JWT                         |
+| `REFRESH_TOKEN_SECRET`  | Any long random string for JWT                         |
+| `CLOUDINARY_CLOUD_NAME` | From cloudinary.com dashboard                          |
+| `CLOUDINARY_API_KEY`    | From cloudinary.com dashboard                          |
+| `CLOUDINARY_API_SECRET` | From cloudinary.com dashboard                          |
+| `SMTP_USER`             | Gmail address for sending emails                       |
+| `SMTP_PASS`             | Gmail App Password (16 chars, not your login password) |
+| `RAZORPAY_KEY_ID`       | From razorpay.com → Settings → API Keys                |
+| `RAZORPAY_KEY_SECRET`   | From razorpay.com → Settings → API Keys                |
 
 ---
 
@@ -150,11 +150,13 @@ Go to **APIs & Services → Library** and search + enable each one:
 Open two terminals:
 
 **Terminal 1 — Backend:**
+
 ```bash
 cd BackEnd && npm run dev
 ```
 
 **Terminal 2 — Frontend:**
+
 ```bash
 cd FrontEnd && npm run dev
 ```
