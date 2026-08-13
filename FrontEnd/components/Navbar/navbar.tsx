@@ -1,7 +1,7 @@
-"use client"
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,41 +9,40 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useAuth } from "../providers/auth-provider"
-import { useUserLogout } from "@/src/hooks/useUser"
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "../providers/auth-provider";
+import { useUserLogout } from "@/src/hooks/useUser";
 
 const NAV_LINKS = [
-  { label: "Home",         href: "/resturent" },
+  { label: "Home", href: "/restaurant" },
   { label: "Reservations", href: "/userreservation" },
-  { label: "Items",        href: "/items" },
-  { label: "About",        href: "/about" },
-  { label: "Contact",      href: "/contact" },
-]
+  { label: "Items", href: "/items" },
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
+];
 
 export default function Navbar() {
-  const pathname = usePathname()
-  const router   = useRouter()
+  const pathname = usePathname();
+  const router = useRouter();
 
-  const [menuOpen, setMenuOpen] = useState(false)
-  const { user, isAuthenticated } = useAuth()
-  const { mutateAsync: logout }   = useUserLogout()
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { user, isAuthenticated } = useAuth();
+  const { mutateAsync: logout } = useUserLogout();
 
   const handleLogout = async () => {
     try {
-      await logout()
-      router.push("/login")
+      await logout();
+      router.push("/login");
     } catch (error) {
-      console.error("Logout failed:", error)
+      console.error("Logout failed:", error);
     }
-  }
+  };
 
   return (
     <nav className="w-full bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-
           {/* ── Logo ──────────────────────────────────────────────────────── */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
             <div
@@ -63,7 +62,7 @@ export default function Navbar() {
           {/* ── Desktop nav links ──────────────────────────────────────────── */}
           <div className="hidden md:flex items-center gap-0.5">
             {NAV_LINKS.map((link) => {
-              const isActive = pathname === link.href
+              const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.href}
@@ -71,9 +70,10 @@ export default function Navbar() {
                   className={`
                     relative px-4 py-2 text-sm font-poppins font-medium rounded-lg
                     transition-all duration-150
-                    ${isActive
-                      ? "text-[hsl(var(--brand-primary))] bg-orange-50"
-                      : "text-gray-600 hover:text-[hsl(var(--brand-primary))] hover:bg-orange-50"
+                    ${
+                      isActive
+                        ? "text-[hsl(var(--brand-primary))] bg-orange-50"
+                        : "text-gray-600 hover:text-[hsl(var(--brand-primary))] hover:bg-orange-50"
                     }
                   `}
                 >
@@ -85,13 +85,12 @@ export default function Navbar() {
                     />
                   )}
                 </Link>
-              )
+              );
             })}
           </div>
 
           {/* ── Right side ────────────────────────────────────────────────── */}
           <div className="flex items-center gap-3">
-
             {/* Sign In button — desktop */}
             {!isAuthenticated && (
               <Link
@@ -124,9 +123,7 @@ export default function Navbar() {
                           : "U"}
                       </AvatarFallback>
                     </Avatar>
-                    <span
-                      className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white bg-green-500"
-                    />
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white bg-green-500" />
                   </button>
                 </DropdownMenuTrigger>
 
@@ -147,7 +144,11 @@ export default function Navbar() {
 
                   <DropdownMenuItem asChild>
                     <Link
-                      href={user?.role === "customer" ? "/customer/dashboard" : "/admin"}
+                      href={
+                        user?.role === "customer"
+                          ? "/customer/dashboard"
+                          : "/admin"
+                      }
                       className="flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-poppins cursor-pointer"
                     >
                       <span>👤</span> My Dashboard
@@ -198,7 +199,7 @@ export default function Navbar() {
       >
         <div className="px-4 pt-2 pb-4 space-y-1 bg-white">
           {NAV_LINKS.map((link) => {
-            const isActive = pathname === link.href
+            const isActive = pathname === link.href;
             return (
               <Link
                 key={link.href}
@@ -206,9 +207,10 @@ export default function Navbar() {
                 onClick={() => setMenuOpen(false)}
                 className={`
                   flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-poppins font-medium transition-colors
-                  ${isActive
-                    ? "bg-orange-50 text-[hsl(var(--brand-primary))]"
-                    : "text-gray-600 hover:bg-orange-50 hover:text-[hsl(var(--brand-primary))]"
+                  ${
+                    isActive
+                      ? "bg-orange-50 text-[hsl(var(--brand-primary))]"
+                      : "text-gray-600 hover:bg-orange-50 hover:text-[hsl(var(--brand-primary))]"
                   }
                 `}
               >
@@ -220,7 +222,7 @@ export default function Navbar() {
                 )}
                 {link.label}
               </Link>
-            )
+            );
           })}
 
           {/* Sign In — mobile */}
@@ -241,5 +243,5 @@ export default function Navbar() {
         </div>
       </div>
     </nav>
-  )
+  );
 }
