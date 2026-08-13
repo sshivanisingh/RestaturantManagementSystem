@@ -270,15 +270,11 @@ function LoginForm() {
       <div className="w-full max-w-sm bg-white shadow-md p-8 space-y-6">
         {/* Icon + Title */}
         <div className="flex flex-col items-center gap-2">
-          <div
-            className="w-14 h-14 rounded-full flex items-center justify-center shadow"
-            style={{ background: "hsl(var(--brand-primary))" }}
-          >
-            {/* <span className="text-2xl">🍽️</span> */}
+          <div className="w-14 h-14 flex items-center justify-center">
             <img
               src="/logo.png"
               alt="BiteNest"
-              className="h-10 w-auto object-contain"
+              className="h-14 w-auto object-contain"
             />
           </div>
           <h1 className="text-xl font-semibold font-poppins text-gray-800">
