@@ -45,12 +45,14 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* ── Logo ──────────────────────────────────────────────────────── */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm"
-              style={{ background: "hsl(var(--brand-primary))" }}
-            >
-              🍽️
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shadow-sm">
+              <img
+                src="/logo.png"
+                alt="BiteNest"
+                className="w-full h-full object-contain"
+              />
             </div>
+
             <span
               className="text-xl font-satisfy tracking-wide"
               style={{ color: "hsl(var(--brand-primary))" }}
