@@ -35,7 +35,7 @@ router.delete("/:id", verifyJWT, deleteTable);
 router.patch("/:id/status", verifyJWT, updateTableStatus);
 
 // ── Reservations ─────────────────────────────────────────────────────────────
-router.post("/:id/reservations", verifyJWT, createReservation);
+router.post("/:id/reservations", createReservation);
 router.get("/:id/reservations", verifyJWT, getReservations);
 
 router.patch("/:id/reservations/:reservationId", verifyJWT, updateReservation);
