@@ -395,7 +395,7 @@ function CheckoutInner() {
                       onChange={(e) =>
                         handleInputChange("firstName", e.target.value)
                       }
-                      placeholder="Rahul"
+                      placeholder="John"
                     />
                   </div>
                   <div>
@@ -406,7 +406,7 @@ function CheckoutInner() {
                       onChange={(e) =>
                         handleInputChange("lastName", e.target.value)
                       }
-                      placeholder="Kumar"
+                      placeholder="Doe"
                     />
                   </div>
                 </div>
@@ -420,7 +420,7 @@ function CheckoutInner() {
                       onChange={(e) =>
                         handleInputChange("email", e.target.value)
                       }
-                      placeholder="rahul@email.com"
+                      placeholder="johndoe@gmail.com"
                     />
                   </div>
                   <div>
@@ -470,7 +470,7 @@ function CheckoutInner() {
                       onChange={(e) =>
                         handleInputChange("city", e.target.value)
                       }
-                      placeholder="Delhi"
+                      placeholder="Kalyan"
                     />
                   </div>
                   <div>
@@ -481,7 +481,7 @@ function CheckoutInner() {
                       onChange={(e) =>
                         handleInputChange("zipCode", e.target.value)
                       }
-                      placeholder="110001"
+                      placeholder="421301"
                     />
                   </div>
                 </div>
