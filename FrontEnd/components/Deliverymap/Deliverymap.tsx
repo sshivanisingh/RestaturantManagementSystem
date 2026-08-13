@@ -69,22 +69,22 @@ function loadGMaps(): Promise<void> {
   return loadPromise;
 }
 
-function geocodeAddr(
-  address: string,
-): Promise<google.maps.LatLngLiteral | null> {
-  return new Promise((resolve) => {
-    const G = (window as any).google?.maps;
-    if (!G) return resolve(null);
-    new G.Geocoder().geocode({ address }, (r: any[], s: string) =>
-      s === "OK" && r?.[0]
-        ? resolve({
-            lat: r[0].geometry.location.lat(),
-            lng: r[0].geometry.location.lng(),
-          })
-        : resolve(null),
-    );
-  });
-}
+// function geocodeAddr(
+//   address: string,
+// ): Promise<google.maps.LatLngLiteral | null> {
+//   return new Promise((resolve) => {
+//     const G = (window as any).google?.maps;
+//     if (!G) return resolve(null);
+//     new G.Geocoder().geocode({ address }, (r: any[], s: string) =>
+//       s === "OK" && r?.[0]
+//         ? resolve({
+//             lat: r[0].geometry.location.lat(),
+//             lng: r[0].geometry.location.lng(),
+//           })
+//         : resolve(null),
+//     );
+//   });
+// }
 
 function computeHeading(
   from: { lat: number; lng: number },
@@ -560,19 +560,17 @@ export default function DeliveryMap({
     const boot = async () => {
       try {
         setStatus("loading");
+
         await loadGMaps();
-        let destination = dest;
-        if (!destination) {
-          setStatus("geocoding");
-          destination = await geocodeAddr(customerAddress);
-          if (!destination) {
-            setErrMsg(`Address not found: "${customerAddress}"`);
-            setStatus("error");
-            return;
-          }
-          setDest(destination);
+
+        // Destination must already be available as coordinates.
+        if (!dest) {
+          setErrMsg("Delivery location coordinates are not available.");
+          setStatus("error");
+          return;
         }
-        initMap(driverLat, driverLng, destination);
+
+        initMap(driverLat, driverLng, dest);
       } catch (e: any) {
         setErrMsg(e?.message ?? "Map failed");
         setStatus("error");
