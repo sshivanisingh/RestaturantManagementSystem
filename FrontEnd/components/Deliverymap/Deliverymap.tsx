@@ -60,7 +60,7 @@ function loadGMaps(): Promise<void> {
   if (loadPromise) return loadPromise;
   loadPromise = new Promise((ok, fail) => {
     const s = document.createElement("script");
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${KEY}&libraries=geometry,places`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${KEY}&loading=async&libraries=geometry,places`;
     s.async = true;
     s.onload = () => ok();
     s.onerror = () => fail(new Error("Maps load error"));
