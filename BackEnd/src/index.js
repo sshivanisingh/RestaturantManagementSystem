@@ -10,32 +10,29 @@ import compression from "compression";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import { createServer } from "http";
- 
 
 // ─── Route Imports ────────────────────────────────────────────────────────────
-import authRoutes       from "./routes/auth.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 import menuCategoryRoutes from "./routes/menuCategory.routes.js";
-import menuItemRoutes   from "./routes/menuItem.routes.js";
-import tableRoutes      from "./routes/table.routes.js";
-import userRouter        from "./routes/user.routes.js";
+import menuItemRoutes from "./routes/menuItem.routes.js";
+import tableRoutes from "./routes/table.routes.js";
+import userRouter from "./routes/user.routes.js";
 import deleveryBoyRouter from "./routes/deliveryboy.routes.js";
 import inventoryRoutes from "./routes/inventory.routes.js";
 import invoiceRoutes from "./routes/invoice.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
- 
 
 // ─── Utility Imports ──────────────────────────────────────────────────────────
 import connectDB from "./db/index.js";
-import { ApiError }       from "./utils/ApiError.js";
-import { ApiResponse }    from "./utils/ApiResponse.js";
-import { logger }         from "./utils/logger.js";
-import orderRoutes       from "./routes/order.routes.js";
-
+import { ApiError } from "./utils/ApiError.js";
+import { ApiResponse } from "./utils/ApiResponse.js";
+import { logger } from "./utils/logger.js";
+import orderRoutes from "./routes/order.routes.js";
 
 // ─── App Initialization ───────────────────────────────────────────────────────
-const app    = express();
+const app = express();
 const server = createServer(app);
-const PORT   = process.env.PORT || 8000;
+const PORT = process.env.PORT || 8000;
 const API_V1 = "/api/v1";
 
 // ─── Trust Proxy (for Nginx / Load Balancer) ──────────────────────────────────
@@ -51,13 +48,13 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc:  ["'self'"],
-        styleSrc:   ["'self'", "'unsafe-inline'"],
-        imgSrc:     ["'self'", "data:", "https:"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
       },
     },
     crossOriginEmbedderPolicy: false,
-  })
+  }),
 );
 
 // 2. CORS — whitelist only allowed origins
@@ -77,25 +74,31 @@ app.use(
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     exposedHeaders: ["X-Total-Count"],
-    maxAge: 600,  
-  })
+    maxAge: 600,
+  }),
 );
 
 // 3. Global Rate Limiter — brute-force & DDoS protection
 const globalLimiter = rateLimit({
-  windowMs:         15 * 60 * 1000, // 15 minutes
-  max:              200,
-  standardHeaders:  true,
-  legacyHeaders:    false,
-  message: { success: false, message: "Too many requests. Please try again later." },
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many requests. Please try again later.",
+  },
   skip: (req) => process.env.NODE_ENV === "development",
 });
 
 // 4. Strict Rate Limiter — auth endpoints
 const authLimiter = rateLimit({
-  windowMs:  15 * 60 * 1000,
-  max:       20,
-  message: { success: false, message: "Too many auth attempts. Please try again in 15 minutes." },
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: {
+    success: false,
+    message: "Too many auth attempts. Please try again in 15 minutes.",
+  },
 });
 
 app.use(globalLimiter);
@@ -113,17 +116,17 @@ app.use(hpp());
 //  STANDARD MIDDLEWARES
 // ═════════════════════════════════════════════════════════════════════════════
 
-app.use(express.json({ limit: "10kb" }));             
+app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
-app.use(compression());                              
+app.use(compression());
 
 // HTTP Request Logging
 if (process.env.NODE_ENV !== "test") {
   app.use(
     morgan(process.env.NODE_ENV === "production" ? "combined" : "dev", {
       stream: { write: (msg) => logger.http(msg.trim()) },
-    })
+    }),
   );
 }
 
@@ -133,12 +136,16 @@ if (process.env.NODE_ENV !== "test") {
 
 app.get("/health", (_req, res) => {
   res.status(200).json(
-    new ApiResponse(200, {
-      status:    "healthy",
-      uptime:    process.uptime(),
-      timestamp: new Date().toISOString(),
-      env:       process.env.NODE_ENV,
-    }, "Server is up and running")
+    new ApiResponse(
+      200,
+      {
+        status: "healthy",
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        env: process.env.NODE_ENV,
+      },
+      "Server is up and running",
+    ),
   );
 });
 
@@ -146,16 +153,16 @@ app.get("/health", (_req, res) => {
 //  API ROUTES  (v1)
 // ═════════════════════════════════════════════════════════════════════════════
 
-app.use(`${API_V1}/auth`,           authLimiter, authRoutes);
+app.use(`${API_V1}/auth`, authLimiter, authRoutes);
 app.use(`${API_V1}/menu-categories`, menuCategoryRoutes);
-app.use(`${API_V1}/menu-items`,      menuItemRoutes);
-app.use(`${API_V1}/table`,          tableRoutes);
-app.use(`${API_V1}/user`,           userRouter);
-app.use(`${API_V1}/orders`,          orderRoutes);
-app.use(`${API_V1}/inventory`,      inventoryRoutes);
-app.use(`${API_V1}/invoices`,       invoiceRoutes);
-app.use(`${API_V1}/dashboard`,      dashboardRoutes);
-app.use(`${API_V1}/delivery`,    deleveryBoyRouter);
+app.use(`${API_V1}/menu-items`, menuItemRoutes);
+app.use(`${API_V1}/table`, tableRoutes);
+app.use(`${API_V1}/user`, userRouter);
+app.use(`${API_V1}/orders`, orderRoutes);
+app.use(`${API_V1}/inventory`, inventoryRoutes);
+app.use(`${API_V1}/invoices`, invoiceRoutes);
+app.use(`${API_V1}/dashboard`, dashboardRoutes);
+app.use(`${API_V1}/delivery`, deleveryBoyRouter);
 
 // ─── 404 — Unknown Routes ─────────────────────────────────────────────────────
 // app.all("*", (req, _res, next) => {
@@ -169,7 +176,7 @@ app.use(`${API_V1}/delivery`,    deleveryBoyRouter);
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
   const statusCode = err.statusCode || 500;
-  const message    = err.message    || "Internal Server Error";
+  const message = err.message || "Internal Server Error";
 
   // Never leak stack traces in production
   if (process.env.NODE_ENV !== "production") {
@@ -178,9 +185,9 @@ app.use((err, _req, res, _next) => {
     logger.error(`[${statusCode}] ${message}`);
   }
 
-  res.status(statusCode).json(
-    new ApiResponse(statusCode, null, message, false)
-  );
+  res
+    .status(statusCode)
+    .json(new ApiResponse(statusCode, null, message, false));
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -202,7 +209,7 @@ const gracefulShutdown = (signal) => {
 };
 
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT",  () => gracefulShutdown("SIGINT"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 // Catch unhandled promise rejections & exceptions
 process.on("unhandledRejection", (reason) => {
@@ -225,7 +232,9 @@ process.on("uncaughtException", (err) => {
     logger.info("✅  Database connected successfully");
 
     server.listen(PORT, () => {
-      logger.info(`🚀  Server running in [${process.env.NODE_ENV}] mode on port ${PORT}`);
+      logger.info(
+        `🚀  Server running in [${process.env.NODE_ENV}] mode on port ${PORT}`,
+      );
       logger.info(`📡  API base URL : http://localhost:${PORT}${API_V1}`);
       logger.info(`❤️   Health check : http://localhost:${PORT}/health`);
     });
@@ -234,5 +243,7 @@ process.on("uncaughtException", (err) => {
     process.exit(1);
   }
 })();
+console.log("CORS_ORIGIN:", process.env.CORS_ORIGIN);
+console.log("ALLOWED_ORIGINS:", ALLOWED_ORIGINS);
 
 export { app };
