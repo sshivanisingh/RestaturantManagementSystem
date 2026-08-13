@@ -1,62 +1,98 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server";
 
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY!
+const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 export async function GET(req: NextRequest) {
-  const placeId = req.nextUrl.searchParams.get("placeId") || ""
+  const placeId = req.nextUrl.searchParams.get("placeId")?.trim() || "";
 
   if (!placeId) {
-    return NextResponse.json({ error: "placeId required" }, { status: 400 })
+    return NextResponse.json({ error: "placeId is required" }, { status: 400 });
   }
 
-  // ── Try Places API (New) first ────────────────────────────────────────────
+  if (!API_KEY) {
+    console.error("GOOGLE_MAPS_API_KEY is missing");
+
+    return NextResponse.json(
+      { error: "Google Maps API key is not configured" },
+      { status: 500 },
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Places API (New)
+  // ─────────────────────────────────────────────────────────────
   try {
-    const res = await fetch(
-      `https://places.googleapis.com/v1/places/${placeId}`,
+    const response = await fetch(
+      `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`,
       {
         headers: {
-          "X-Goog-Api-Key" : API_KEY,
-          "X-Goog-FieldMask": "addressComponents,formattedAddress,location",
+          "X-Goog-Api-Key": API_KEY,
+          "X-Goog-FieldMask": "id,formattedAddress,addressComponents,location",
         },
-      }
-    )
+      },
+    );
 
-    if (res.ok) {
-      const data = await res.json()
-      if (data.formattedAddress) return NextResponse.json(data)
+    const data = await response.json();
+
+    if (response.ok && data.formattedAddress) {
+      return NextResponse.json(data);
     }
-    console.warn("[Place Details New] failed:", res.status)
-  } catch (e) {
-    console.warn("[Place Details New] exception:", e)
+
+    console.warn(
+      "[Place Details New] failed:",
+      response.status,
+      data?.error?.message || data,
+    );
+  } catch (error) {
+    console.error("[Place Details New] exception:", error);
   }
 
-  // ── Fallback: Legacy Place Details API ───────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // Legacy Places API fallback
+  // ─────────────────────────────────────────────────────────────
   try {
-    const url  = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&key=${API_KEY}&fields=formatted_address,address_components,geometry`
-    const res  = await fetch(url)
-    const data = await res.json()
+    const url =
+      "https://maps.googleapis.com/maps/api/place/details/json" +
+      `?place_id=${encodeURIComponent(placeId)}` +
+      `&key=${API_KEY}` +
+      `&fields=formatted_address,address_components,geometry`;
+
+    const response = await fetch(url);
+    const data = await response.json();
 
     if (data.status === "OK" && data.result) {
-      const r = data.result
-      // Convert legacy format → new format shape
-      const addressComponents = (r.address_components || []).map((c: any) => ({
-        longText: c.long_name,
-        types   : c.types,
-      }))
+      const result = data.result;
+
+      const addressComponents = (result.address_components || []).map(
+        (component: any) => ({
+          longText: component.long_name,
+          types: component.types,
+        }),
+      );
 
       return NextResponse.json({
-        formattedAddress  : r.formatted_address,
+        formattedAddress: result.formatted_address || "",
+
         addressComponents,
+
         location: {
-          latitude : r.geometry?.location?.lat,
-          longitude: r.geometry?.location?.lng,
+          latitude: result.geometry?.location?.lat,
+          longitude: result.geometry?.location?.lng,
         },
-      })
+      });
     }
-    console.warn("[Place Details Legacy] status:", data.status)
-  } catch (e) {
-    console.warn("[Place Details Legacy] exception:", e)
+
+    console.warn(
+      "[Place Details Legacy] status:",
+      data.status,
+      data.error_message || "",
+    );
+  } catch (error) {
+    console.error("[Place Details Legacy] exception:", error);
   }
 
-  return NextResponse.json({ error: "not found" }, { status: 404 })
+  return NextResponse.json(
+    { error: "Place details not found" },
+    { status: 404 },
+  );
 }
