@@ -1,247 +1,320 @@
-// import mongoose, { Schema } from "mongoose";
-
-// // ═════════════════════════════════════════════════════════════════════════════
-// //  ORDER MODEL
-// // ═════════════════════════════════════════════════════════════════════════════
-// const orderItemSchema = new Schema({
-//   menuItemId: {
-//     type    : mongoose.Schema.Types.ObjectId,
-//     ref     : "MenuItem",                     
-//     required: true,
-//   },
-//   // Snapshot — price baad mein change ho toh bhi order sahi rahe
-//   name    : { type: String,  required: true },
-//   image   : { type: String },
-//   price   : { type: Number,  required: true },
-//   quantity: { type: Number,  required: true, min: 1 },
-// }, { _id: false });
-
-// const orderSchema = new Schema({
-//   orderId     : { type: String, unique: true },  
-//   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-//   paymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", default: null },
-//   items: [orderItemSchema],
-//   deliveryInfo: {
-//     name   : { type: String, required: true },
-//     phone  : { type: String, required: true },
-//     email  : { type: String },
-//     address : { type: String, required: true },
-//     city   : { type: String, required: true },
-//     state  : { type: String },
-//     pincode: { type: String, required: true },
-//     type   : { type: String, enum: ["delivery", "pickup"], default: "delivery" },
-//   },
-//   pricing: {
-//     subtotal      : { type: Number, required: true },
-//     tax           : { type: Number, default: 0 },
-//     deliveryCharge: { type: Number, default: 0 },
-//     discount      : { type: Number, default: 0 },
-//     total         : { type: Number, required: true },
-//   },
-
-//   couponCode: { type: String, default: null },
-
-//   orderstatus: {
-//     type   : String,
-//     enum   : ["pending", "confirmed","cancelled"],
-//     default: "pending",
-//   },
-
-//    deliverystatus:{
-//     type   : String,
-//     enum   : ["pending", "out_for_delivery", "delivered"],
-//     default: "pending",
-//   },
-
-
-//   statusHistory: [{
-//     status   : String,
-//     timestamp: { type: Date, default: Date.now },
-//     note     : String,
-//   }],
-
-//   notes          : { type: String },              // user ka special instruction
-//   estimatedTime  : { type: Number },              // minutes
-//   isGuestOrder   : { type: Boolean, default: false },
-
-// }, { timestamps: true });
-
-// // Auto generate orderId before save
-// orderSchema.pre("save", async function (next) {
-//   if (!this.orderId) {
-//     const count     = await mongoose.model("Order").countDocuments();
-//     const year      = new Date().getFullYear();
-//     this.orderId    = `ORD-${year}-${String(count + 1).padStart(4, "0")}`;
-//   }
-// });
-
-// export const Order = mongoose.model("Order", orderSchema);
-
-
-// // ═════════════════════════════════════════════════════════════════════════════
-// //  PAYMENT MODEL
-// // ═════════════════════════════════════════════════════════════════════════════
-// const paymentSchema = new Schema({
-//   orderId: {
-//     type    : mongoose.Schema.Types.ObjectId,
-//     ref     : "Order",
-//     required: true,
-//   },
-//   userId: {
-//     type   : mongoose.Schema.Types.ObjectId,
-//     ref    : "User",
-//     default: null,
-//   },
- 
-
-//   amount  : { type: Number, required: true },
-//   currency: { type: String, default: "INR" },
-
-//   method: {
-//     type: String,
-//     enum: ["COD", "UPI", "CARD", "NETBANKING", "WALLET","RAZORPAY"],
-//     required: true,
-//   },
-
-//   status: {
-//     type   : String,
-//     enum   : ["pending", "paid", "failed", "refunded", "partially_refunded"],
-//     default: "pending",
-//   },
-
-//   // Razorpay / Stripe response
-//   transactionId    : { type: String, default: null },
-//   gatewayOrderId   : { type: String, default: null },  // Razorpay order_id
-//   gatewayResponse  : { type: Schema.Types.Mixed },     // raw gateway response
-
-//   paidAt    : { type: Date },
-//   refundedAt: { type: Date },
-//   refundAmount: { type: Number, default: 0 },
-
-//   // Delivery info snapshot
-//   customerEmail: { type: String },
-//   customerPhone: { type: String },
-
-// }, { timestamps: true });
-
-// export const Payment = mongoose.model("Payment", paymentSchema);
-
-
-
-
-
-
-
-
-
-
-
-
-
 import mongoose, { Schema } from "mongoose";
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  ORDER MODEL
+// ORDER ITEM
 // ═════════════════════════════════════════════════════════════════════════════
+
 const orderItemSchema = new Schema(
   {
     menuItemId: {
-      type    : mongoose.Schema.Types.ObjectId,
-      ref     : "MenuItem",
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MenuItem",
       required: true,
     },
-    // Snapshot — price baad mein change ho toh bhi order sahi rahe
-    name    : { type: String, required: true },
-    image   : { type: String },
-    price   : { type: Number, required: true },
-    quantity: { type: Number, required: true, min: 1 },
+
+    // Snapshot of menu item data at order time
+    name: {
+      type: String,
+      required: true,
+    },
+
+    image: {
+      type: String,
+      default: "",
+    },
+
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
   },
-  { _id: false }
+  {
+    _id: false,
+  },
 );
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ORDER MODEL
+// ═════════════════════════════════════════════════════════════════════════════
 
 const orderSchema = new Schema(
   {
-    orderId     : { type: String, unique: true },
-    userId      : { type: mongoose.Schema.Types.ObjectId, ref: "User",        default: null },
-    paymentId   : { type: mongoose.Schema.Types.ObjectId, ref: "Payment",     default: null },
-    restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant",  default: null },
+    orderId: {
+      type: String,
+      unique: true,
+    },
 
-    // ── Delivery Boy Assignment ────────────────────────────────────────────
-    deliveryBoyId: {
-      type   : mongoose.Schema.Types.ObjectId,
-      ref    : "DeliveryBoy",
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       default: null,
     },
-    deliveryBoyAssignedAt: { type: Date, default: null },
 
-    items: [orderItemSchema],
+    paymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment",
+      default: null,
+    },
+
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Restaurant",
+      default: null,
+    },
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Delivery Boy
+    // ─────────────────────────────────────────────────────────────────────
+
+    deliveryBoyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DeliveryBoy",
+      default: null,
+    },
+
+    deliveryBoyAssignedAt: {
+      type: Date,
+      default: null,
+    },
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Items
+    // ─────────────────────────────────────────────────────────────────────
+
+    items: {
+      type: [orderItemSchema],
+      required: true,
+      validate: {
+        validator: (items) => items.length > 0,
+        message: "Order must contain at least one item",
+      },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Delivery Information
+    // ─────────────────────────────────────────────────────────────────────
 
     deliveryInfo: {
-      name   : { type: String, required: true },
-      phone  : { type: String, required: true },
-      email  : { type: String },
-      address: { type: String, required: true },
-      city   : { type: String, required: true },
-      state  : { type: String },
-      pincode: { type: String, required: true },
-      type   : { type: String, enum: ["delivery", "pickup"], default: "delivery" },
+      name: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+
+      phone: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+
+      email: {
+        type: String,
+        default: null,
+        trim: true,
+      },
+
+      address: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+
+      city: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+
+      state: {
+        type: String,
+        default: null,
+        trim: true,
+      },
+
+      pincode: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+
+      type: {
+        type: String,
+        enum: ["delivery", "pickup"],
+        default: "delivery",
+      },
     },
 
-    // ── Customer's live location (optional — set at order time) ────────────
+    // ─────────────────────────────────────────────────────────────────────
+    // Customer Location
+    // ─────────────────────────────────────────────────────────────────────
+
     customerLocation: {
-      type       : { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number], default: null }, // [lng, lat]
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+
+      coordinates: {
+        type: [Number],
+        default: null,
+      },
     },
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Pricing
+    // ─────────────────────────────────────────────────────────────────────
 
     pricing: {
-      subtotal      : { type: Number, required: true },
-      tax           : { type: Number, default: 0 },
-      deliveryCharge: { type: Number, default: 0 },
-      discount      : { type: Number, default: 0 },
-      total         : { type: Number, required: true },
+      subtotal: {
+        type: Number,
+        required: true,
+        min: 0,
+      },
+
+      tax: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+
+      deliveryCharge: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+
+      discount: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+
+      total: {
+        type: Number,
+        required: true,
+        min: 0,
+      },
     },
 
-    couponCode: { type: String, default: null },
+    couponCode: {
+      type: String,
+      default: null,
+    },
+
+    // ─────────────────────────────────────────────────────────────────────
+    // PAYMENT METHOD
+    // ─────────────────────────────────────────────────────────────────────
+
+    paymentMethod: {
+      type: String,
+      enum: ["COD", "UPI", "CARD", "NETBANKING", "WALLET", "RAZORPAY"],
+      default: "COD",
+    },
+
+    // ─────────────────────────────────────────────────────────────────────
+    // ORDER STATUS
+    // ─────────────────────────────────────────────────────────────────────
 
     orderstatus: {
-      type   : String,
-      enum   : ["pending", "confirmed", "cancelled"],
+      type: String,
+      enum: ["pending", "confirmed", "cancelled"],
       default: "pending",
     },
 
+    // ─────────────────────────────────────────────────────────────────────
+    // DELIVERY STATUS
+    // ─────────────────────────────────────────────────────────────────────
+
     deliverystatus: {
-      type   : String,
-      enum   : ["pending", "assigned", "out_for_delivery", "delivered"],
+      type: String,
+      enum: ["pending", "assigned", "out_for_delivery", "delivered"],
       default: "pending",
     },
+
+    // ─────────────────────────────────────────────────────────────────────
+    // STATUS HISTORY
+    // ─────────────────────────────────────────────────────────────────────
 
     statusHistory: [
       {
-        status   : String,
-        timestamp: { type: Date, default: Date.now },
-        note     : String,
+        status: {
+          type: String,
+          required: true,
+        },
+
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+
+        note: {
+          type: String,
+          default: "",
+        },
       },
     ],
 
-    notes        : { type: String },
-    estimatedTime: { type: Number },  // minutes
-    isGuestOrder : { type: Boolean, default: false },
+    notes: {
+      type: String,
+      default: null,
+    },
 
-    // Delivery boy rating by customer after delivery
+    estimatedTime: {
+      type: Number,
+      default: null,
+    },
+
+    isGuestOrder: {
+      type: Boolean,
+      default: false,
+    },
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Delivery Rating
+    // ─────────────────────────────────────────────────────────────────────
+
     deliveryRating: {
-      rating : { type: Number, min: 1, max: 5, default: null },
-      comment: { type: String, default: null },
-      ratedAt: { type: Date, default: null },
+      rating: {
+        type: Number,
+        min: 1,
+        max: 5,
+        default: null,
+      },
+
+      comment: {
+        type: String,
+        default: null,
+      },
+
+      ratedAt: {
+        type: Date,
+        default: null,
+      },
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  },
 );
 
-// Auto generate orderId before save
+// ═════════════════════════════════════════════════════════════════════════════
+// AUTO GENERATE ORDER ID
+// ═════════════════════════════════════════════════════════════════════════════
+
 orderSchema.pre("save", async function () {
   if (!this.orderId) {
-    const count  = await mongoose.model("Order").countDocuments();
-    const year   = new Date().getFullYear();
+    const count = await mongoose.model("Order").countDocuments();
+
+    const year = new Date().getFullYear();
+
     this.orderId = `ORD-${year}-${String(count + 1).padStart(4, "0")}`;
   }
 });
@@ -249,44 +322,89 @@ orderSchema.pre("save", async function () {
 export const Order = mongoose.model("Order", orderSchema);
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  PAYMENT MODEL
+// PAYMENT MODEL
 // ═════════════════════════════════════════════════════════════════════════════
+
 const paymentSchema = new Schema(
   {
     orderId: {
-      type    : mongoose.Schema.Types.ObjectId,
-      ref     : "Order",
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
       required: true,
     },
-    userId      : { type: mongoose.Schema.Types.ObjectId, ref: "User",       default: null },
-   
-    amount  : { type: Number,  required: true },
-    currency: { type: String,  default: "INR" },
+
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    currency: {
+      type: String,
+      default: "INR",
+    },
 
     method: {
-      type    : String,
-      enum    : ["COD", "UPI", "CARD", "NETBANKING", "WALLET", "RAZORPAY"],
+      type: String,
+      enum: ["COD", "UPI", "CARD", "NETBANKING", "WALLET", "RAZORPAY"],
       required: true,
     },
 
     status: {
-      type   : String,
-      enum   : ["pending", "paid", "failed", "refunded", "partially_refunded"],
+      type: String,
+      enum: ["pending", "paid", "failed", "refunded", "partially_refunded"],
       default: "pending",
     },
 
-    transactionId  : { type: String,             default: null },
-    gatewayOrderId : { type: String,             default: null },
-    gatewayResponse: { type: Schema.Types.Mixed },
+    transactionId: {
+      type: String,
+      default: null,
+    },
 
-    paidAt      : { type: Date },
-    refundedAt  : { type: Date },
-    refundAmount: { type: Number, default: 0 },
+    gatewayOrderId: {
+      type: String,
+      default: null,
+    },
 
-    customerEmail: { type: String },
-    customerPhone: { type: String },
+    gatewayResponse: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+
+    paidAt: {
+      type: Date,
+      default: null,
+    },
+
+    refundedAt: {
+      type: Date,
+      default: null,
+    },
+
+    refundAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    customerEmail: {
+      type: String,
+      default: null,
+    },
+
+    customerPhone: {
+      type: String,
+      default: null,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  },
 );
 
 export const Payment = mongoose.model("Payment", paymentSchema);

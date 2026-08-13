@@ -1,5 +1,4 @@
 import express, { Router } from "express";
-import { verifyJWT } from "../middleware/auth.middleware.js";
 
 import {
   createOrder,
@@ -12,48 +11,51 @@ import {
   razorpayWebhook,
 } from "../controllers/order.controller.js";
 
+import { verifyJWT } from "../middleware/auth.middleware.js";
+
 const router = Router();
 
 // ═════════════════════════════════════════════════════════════════════════════
 // RAZORPAY WEBHOOK
 // ═════════════════════════════════════════════════════════════════════════════
-// IMPORTANT: This route must receive the raw request body for Razorpay
-// signature verification. Do not put express.json() specifically on this route.
 
 router.post(
   "/webhook/razorpay",
-  express.raw({ type: "application/json" }),
+
+  express.raw({
+    type: "application/json",
+  }),
+
   razorpayWebhook,
 );
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PUBLIC ROUTES
-// Guests can place orders without logging in.
 // ═════════════════════════════════════════════════════════════════════════════
 
-// Create a new order
+// Create order
 router.post("/", createOrder);
 
-// Initiate Razorpay payment for an existing order
+// Initiate Razorpay
 router.post("/:orderId/initiate-payment", initiateRazorpayPayment);
 
 // Verify Razorpay payment
 router.post("/verify-payment", verifyRazorpayPayment);
 
-// Confirm Cash on Delivery order
+// Confirm COD
 router.post("/:orderId/cod-confirm", confirmCODOrder);
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PROTECTED ROUTES
 // ═════════════════════════════════════════════════════════════════════════════
 
-// Get a specific order
+// Get single order
 router.get("/detail/:orderId", verifyJWT, getOrderById);
 
-// Admin: get all restaurant orders
+// Get all orders
 router.get("/", verifyJWT, getAllOrders);
 
-// Admin: update order status
+// Update order
 router.patch("/:orderId/status", verifyJWT, updateOrderStatus);
 
 export default router;

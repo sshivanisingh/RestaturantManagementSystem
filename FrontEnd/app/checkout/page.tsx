@@ -188,16 +188,23 @@ function CheckoutInner() {
           menuItemId: item.id,
           quantity: item.quantity,
         })),
+
         deliveryInfo: {
           name: `${form.firstName} ${form.lastName}`.trim(),
           email: form.email,
           phone: form.phone,
+
+          // IMPORTANT: backend expects "address", NOT "street"
           street: form.address,
+
           city: form.city,
           pincode: form.zipCode,
+
           type: "delivery",
         },
+
         paymentMethod: form.paymentMethod === "cash" ? "COD" : "RAZORPAY",
+
         notes: form.notes || undefined,
       });
 
