@@ -152,6 +152,12 @@ app.get("/health", (_req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 //  API ROUTES  (v1)
 // ═════════════════════════════════════════════════════════════════════════════
+app.get("/api/v1/auth/test", (_req, res) => {
+  res.json({
+    message: "Auth route is working",
+    environment: process.env.NODE_ENV,
+  });
+});
 
 app.use(`${API_V1}/auth`, authLimiter, authRoutes);
 app.use(`${API_V1}/menu-categories`, menuCategoryRoutes);
