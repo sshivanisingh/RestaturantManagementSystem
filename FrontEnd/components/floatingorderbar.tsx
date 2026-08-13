@@ -1,18 +1,26 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
-import { useOrderSelection } from "./providers/order-selection-provider"
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { useOrderSelection } from "./providers/order-selection-provider";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetFooter,
-} from "@/components/ui/sheet"
-import { ShoppingBag, X, ChevronRight, Plus, Minus, Trash2, UtensilsCrossed } from "lucide-react"
-import { useState } from "react"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/sheet";
+import {
+  ShoppingBag,
+  X,
+  ChevronRight,
+  Plus,
+  Minus,
+  Trash2,
+  UtensilsCrossed,
+} from "lucide-react";
+import { useState } from "react";
+import { Separator } from "@/components/ui/separator";
 
 export function FloatingOrderBar() {
   const {
@@ -22,23 +30,23 @@ export function FloatingOrderBar() {
     clearSelection,
     updateQty,
     toggleSelect,
-  } = useOrderSelection()
+  } = useOrderSelection();
 
-  const router          = useRouter()
-  const [open, setOpen] = useState(false)
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
 
-  const SESSION_KEY = "hotelhub_order_selection"
+  const SESSION_KEY = "BiteNest_order_selection";
 
   const handlePlaceOrder = () => {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(selectedItems))
-    setOpen(false)
-    router.push("/checkout?source=selection")
-  }
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(selectedItems));
+    setOpen(false);
+    router.push("/checkout?source=selection");
+  };
 
-  const subtotal    = totalPrice
-  const tax         = Math.round(subtotal * 0.05)
-  const deliveryFee = subtotal >= 500 ? 0 : 40
-  const total       = subtotal + tax + deliveryFee
+  const subtotal = totalPrice;
+  const tax = Math.round(subtotal * 0.05);
+  const deliveryFee = subtotal >= 500 ? 0 : 40;
+  const total = subtotal + tax + deliveryFee;
 
   return (
     <>
@@ -53,10 +61,11 @@ export function FloatingOrderBar() {
             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-lg"
           >
             <div className="bg-white rounded-2xl shadow-2xl border border-brand-primary/20 px-4 py-3 flex items-center gap-3">
-
               {/* Item count pill */}
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center shadow">
-                <span className="text-white text-sm font-bold">{totalItems}</span>
+                <span className="text-white text-sm font-bold">
+                  {totalItems}
+                </span>
               </div>
 
               {/* Summary — click to open sheet */}
@@ -65,11 +74,17 @@ export function FloatingOrderBar() {
                 className="flex-1 min-w-0 text-left"
               >
                 <p className="text-sm font-semibold text-gray-900 truncate">
-                  {selectedItems.length} item{selectedItems.length > 1 ? "s" : ""} selected
-                  <span className="text-gray-400 font-normal ml-1">· tap to review</span>
+                  {selectedItems.length} item
+                  {selectedItems.length > 1 ? "s" : ""} selected
+                  <span className="text-gray-400 font-normal ml-1">
+                    · tap to review
+                  </span>
                 </p>
                 <p className="text-xs text-gray-500">
-                  Total: <span className="font-semibold text-brand-primary">₹{totalPrice.toFixed(2)}</span>
+                  Total:{" "}
+                  <span className="font-semibold text-brand-primary">
+                    ₹{totalPrice.toFixed(2)}
+                  </span>
                 </p>
               </button>
 
@@ -128,17 +143,19 @@ export function FloatingOrderBar() {
                 {/* Item card */}
                 <div className="bg-white rounded-2xl shadow-sm border border-pink-100 overflow-hidden">
                   <div className="flex gap-3 p-3">
-
                     {/* Image */}
                     <div className="relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden">
                       <img
                         src={item.image || "/placeholder.svg"}
                         alt={item.title}
                         className="w-full h-full object-cover"
-                        onError={(e) => { e.currentTarget.src = "/placeholder.svg" }}
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg";
+                        }}
                       />
                       {/* Veg / Non-veg dot */}
-                      <span className={`absolute top-1 left-1 w-3 h-3 rounded-full border-2 border-white shadow-sm
+                      <span
+                        className={`absolute top-1 left-1 w-3 h-3 rounded-full border-2 border-white shadow-sm
                         ${item.type === "Veg" ? "bg-green-500" : "bg-red-500"}`}
                       />
                     </div>
@@ -151,7 +168,16 @@ export function FloatingOrderBar() {
                         </p>
                         {/* Remove button */}
                         <button
-                          onClick={() => toggleSelect({ id: item.id, title: item.title, price: item.price, image: item.image, type: item.type, restaurantId: (item as any).restaurantId ?? "" })}
+                          onClick={() =>
+                            toggleSelect({
+                              id: item.id,
+                              title: item.title,
+                              price: item.price,
+                              image: item.image,
+                              type: item.type,
+                              restaurantId: (item as any).restaurantId ?? "",
+                            })
+                          }
                           className="flex-shrink-0 w-6 h-6 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"
                         >
                           <Trash2 className="h-3.5 w-3.5 text-red-400" />
@@ -167,7 +193,9 @@ export function FloatingOrderBar() {
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center gap-2 bg-orange-50 border border-brand-primary/20 rounded-lg px-2 py-1">
                           <button
-                            onClick={() => updateQty(item.id, item.quantity - 1)}
+                            onClick={() =>
+                              updateQty(item.id, item.quantity - 1)
+                            }
                             className="w-5 h-5 rounded-full bg-white border border-brand-primary/30 flex items-center justify-center hover:bg-brand-primary hover:text-white transition-colors"
                           >
                             <Minus className="h-3 w-3" />
@@ -176,7 +204,9 @@ export function FloatingOrderBar() {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => updateQty(item.id, item.quantity + 1)}
+                            onClick={() =>
+                              updateQty(item.id, item.quantity + 1)
+                            }
                             className="w-5 h-5 rounded-full bg-white border border-brand-primary/30 flex items-center justify-center hover:bg-brand-primary hover:text-white transition-colors"
                           >
                             <Plus className="h-3 w-3" />
@@ -197,7 +227,6 @@ export function FloatingOrderBar() {
 
           {/* Footer — pricing + CTA */}
           <SheetFooter className="px-5 pb-6 pt-4 flex-col gap-0 border-t border-pink-100 bg-white">
-
             {/* Pricing breakdown */}
             <div className="w-full space-y-2 mb-4">
               <div className="flex justify-between text-sm text-gray-500">
@@ -210,7 +239,11 @@ export function FloatingOrderBar() {
               </div>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Delivery</span>
-                <span className={deliveryFee === 0 ? "text-green-600 font-medium" : ""}>
+                <span
+                  className={
+                    deliveryFee === 0 ? "text-green-600 font-medium" : ""
+                  }
+                >
                   {deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}
                 </span>
               </div>
@@ -249,5 +282,5 @@ export function FloatingOrderBar() {
         </SheetContent>
       </Sheet>
     </>
-  )
+  );
 }

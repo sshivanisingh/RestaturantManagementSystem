@@ -6,6 +6,7 @@ Includes **role-based access**, modern UI, CRUD features, and responsive design.
 ---
 
 ## 🚀 Features
+
 - Role-based Access: Admin, Accountant, Delivery, Cart Manager, Customer, etc.
 - Fully Responsive UI (Mobile + Desktop)
 - LocalStorage-based Data Persistence (No backend required)
@@ -18,6 +19,7 @@ Includes **role-based access**, modern UI, CRUD features, and responsive design.
 ---
 
 ## 📦 Installation
+
 1. Download the project ZIP file (Google Drive link after payment).
 2. Extract the ZIP.
 3. Open terminal in the project folder.
@@ -33,23 +35,27 @@ Now open `http://localhost:3000` in your browser.
 ---
 
 ## 💰 Pricing
-- **Basic Project** – ₹149 (One-time)  
-- **Upgrade Package** – ₹2999 (Includes: Customization, Hosting Setup, Deployment Support)  
-  > *Hosting cost is purchased separately by the user. We provide deployment support once hosting is available.*
+
+- **Basic Project** – ₹149 (One-time)
+- **Upgrade Package** – ₹2999 (Includes: Customization, Hosting Setup, Deployment Support)
+  > _Hosting cost is purchased separately by the user. We provide deployment support once hosting is available._
 
 ---
 
 ## 🔑 License
+
 This project comes with a **single-user educational license**.  
-Reselling or distributing the project is **not allowed** without permission.  
+Reselling or distributing the project is **not allowed** without permission.
 
 If you need a **commercial license**, contact support.
 
 ---
 
 ## 🔄 Upgrades & Support
+
 We provide upgrades on user demand.  
 Support includes:
+
 - Email Support
 - WhatsApp Support
 - Bug Fixes & Minor Improvements
@@ -57,10 +63,11 @@ Support includes:
 ---
 
 ## 📞 Contact
-- 📧 Email: support@webxlearner.com  
-- 📱 WhatsApp: +91 9643187413  
-- 🌐 Website: [webxlearner.com](https://webxlearner.com)
+
+- 📧 Email: support@BiteNestlearner.com
+- 📱 WhatsApp: +91 9643187413
+- 🌐 Website: [BiteNestlearner.com](https://BiteNestlearner.com)
 
 ---
 
-✨ Built with ❤️ by **WebX Learner**
+✨ Built with ❤️ by **BiteNest Learner**

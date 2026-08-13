@@ -1,10 +1,9 @@
 import { DeliveryBoy } from "../models/deliveryboy.model.js";
-import { Order }       from "../models/order.payment.model.js";
-import { ApiError }    from "../utils/ApiError.js";
-import { sendEmail }   from "../utils/sendEmail.js";
-import jwt             from "jsonwebtoken";
+import { Order } from "../models/order.payment.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { sendEmail } from "../utils/sendEmail.js";
+import jwt from "jsonwebtoken";
 
- 
 const deliveryBoyWelcomeEmail = ({ name, email, password }) => `
 <!DOCTYPE html>
 <html>
@@ -50,7 +49,7 @@ const deliveryBoyWelcomeEmail = ({ name, email, password }) => `
       </p>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} HotelHub · Delivery Partner Portal</p>
+      <p>© ${new Date().getFullYear()} BiteNest · Delivery Partner Portal</p>
     </div>
   </div>
 </body>
@@ -58,7 +57,7 @@ const deliveryBoyWelcomeEmail = ({ name, email, password }) => `
 
 // ─── Helper: generate tokens ──────────────────────────────────────────────────
 const generateTokens = async (deliveryBoy) => {
-  const accessToken  = deliveryBoy.generateAccessToken();
+  const accessToken = deliveryBoy.generateAccessToken();
   const refreshToken = deliveryBoy.generateRefreshToken();
   deliveryBoy.refreshToken = refreshToken;
   await deliveryBoy.save({ validateBeforeSave: false });
@@ -67,7 +66,6 @@ const generateTokens = async (deliveryBoy) => {
 
 // ═════════════════════════════════════════════════════════════════════════════
 class DeliveryBoyService {
-
   // ───────────────────────────────────────────────────────────────────────────
   // REGISTER — Admin creates delivery boy account
   // ───────────────────────────────────────────────────────────────────────────
@@ -79,35 +77,41 @@ class DeliveryBoyService {
     }
 
     const existing = await DeliveryBoy.findOne({ email: email.toLowerCase() });
-    if (existing) throw new ApiError(409, "Is email se pehle se delivery boy registered hai");
+    if (existing)
+      throw new ApiError(
+        409,
+        "Is email se pehle se delivery boy registered hai",
+      );
 
     const deliveryBoy = await DeliveryBoy.create({
       name,
-      email       : email.toLowerCase(),
+      email: email.toLowerCase(),
       phone,
-      password,          // pre-save hook hash karega
-      vehicleType : vehicleType  || "bike",
+      password, // pre-save hook hash karega
+      vehicleType: vehicleType || "bike",
       vehicleNumber: vehicleNumber || null,
-      isApproved  : false,       // admin baad mein approve karega
-      isActive    : true,
+      isApproved: false, // admin baad mein approve karega
+      isActive: true,
     });
 
     // Welcome email
     try {
       await sendEmail({
-        to     : email,
+        to: email,
         subject: "🛵 Welcome — Delivery Partner Account Created",
-        html   : deliveryBoyWelcomeEmail({ name, email, password }),
-        text   : `Hi ${name}, your delivery partner account is created. Email: ${email}, Password: ${password}`,
+        html: deliveryBoyWelcomeEmail({ name, email, password }),
+        text: `Hi ${name}, your delivery partner account is created. Email: ${email}, Password: ${password}`,
       });
-    } catch (_) { /* email fail ho toh registration block na ho */ }
+    } catch (_) {
+      /* email fail ho toh registration block na ho */
+    }
 
     return {
-      _id         : deliveryBoy._id,
-      name        : deliveryBoy.name,
-      email       : deliveryBoy.email,
-      phone       : deliveryBoy.phone,
-      isApproved  : deliveryBoy.isApproved,
+      _id: deliveryBoy._id,
+      name: deliveryBoy.name,
+      email: deliveryBoy.email,
+      phone: deliveryBoy.phone,
+      isApproved: deliveryBoy.isApproved,
     };
   }
 
@@ -115,11 +119,18 @@ class DeliveryBoyService {
   // LOGIN
   // ───────────────────────────────────────────────────────────────────────────
   static async login(email, password) {
-    const deliveryBoy = await DeliveryBoy.findOne({ email: email.toLowerCase() });
+    const deliveryBoy = await DeliveryBoy.findOne({
+      email: email.toLowerCase(),
+    });
 
-    if (!deliveryBoy)          throw new ApiError(401, "Email ya password galat hai");
-    if (!deliveryBoy.isActive) throw new ApiError(403, "Account deactivate hai. Admin se contact karo");
-    if (!deliveryBoy.isApproved) throw new ApiError(403, "Account abhi approve nahi hua. Admin se contact karo");
+    if (!deliveryBoy) throw new ApiError(401, "Email ya password galat hai");
+    if (!deliveryBoy.isActive)
+      throw new ApiError(403, "Account deactivate hai. Admin se contact karo");
+    if (!deliveryBoy.isApproved)
+      throw new ApiError(
+        403,
+        "Account abhi approve nahi hua. Admin se contact karo",
+      );
 
     const isMatch = await deliveryBoy.isPasswordCorrect(password);
     if (!isMatch) throw new ApiError(401, "Email ya password galat hai");
@@ -128,12 +139,12 @@ class DeliveryBoyService {
 
     return {
       deliveryBoy: {
-        _id         : deliveryBoy._id,
-        name        : deliveryBoy.name,
-        email       : deliveryBoy.email,
-        phone       : deliveryBoy.phone,
-        vehicleType : deliveryBoy.vehicleType,
-        isOnline    : deliveryBoy.isOnline,
+        _id: deliveryBoy._id,
+        name: deliveryBoy.name,
+        email: deliveryBoy.email,
+        phone: deliveryBoy.phone,
+        vehicleType: deliveryBoy.vehicleType,
+        isOnline: deliveryBoy.isOnline,
         currentOrderId: deliveryBoy.currentOrderId,
       },
       accessToken,
@@ -147,7 +158,7 @@ class DeliveryBoyService {
   static async logout(deliveryBoyId) {
     await DeliveryBoy.findByIdAndUpdate(deliveryBoyId, {
       refreshToken: null,
-      isOnline    : false,
+      isOnline: false,
     });
     return { message: "Logged out successfully" };
   }
@@ -156,11 +167,15 @@ class DeliveryBoyService {
   // REFRESH TOKEN
   // ───────────────────────────────────────────────────────────────────────────
   static async refreshAccessToken(incomingRefreshToken) {
-    if (!incomingRefreshToken) throw new ApiError(401, "Refresh token required");
+    if (!incomingRefreshToken)
+      throw new ApiError(401, "Refresh token required");
 
     let decoded;
     try {
-      decoded = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+      decoded = jwt.verify(
+        incomingRefreshToken,
+        process.env.REFRESH_TOKEN_SECRET,
+      );
     } catch {
       throw new ApiError(401, "Invalid or expired refresh token");
     }
@@ -181,7 +196,7 @@ class DeliveryBoyService {
     const deliveryBoy = await DeliveryBoy.findByIdAndUpdate(
       deliveryBoyId,
       { isOnline },
-      { new: true }
+      { new: true },
     ).select("-password -refreshToken");
 
     if (!deliveryBoy) throw new ApiError(404, "Delivery boy not found");
@@ -201,13 +216,15 @@ class DeliveryBoyService {
       deliveryBoyId,
       {
         currentLocation: {
-          type       : "Point",
+          type: "Point",
           coordinates: [parseFloat(longitude), parseFloat(latitude)],
         },
         lastLocationUpdatedAt: new Date(),
       },
-      { new: true }
-    ).select("name currentLocation lastLocationUpdatedAt currentOrderId isOnline");
+      { new: true },
+    ).select(
+      "name currentLocation lastLocationUpdatedAt currentOrderId isOnline",
+    );
 
     if (!deliveryBoy) throw new ApiError(404, "Delivery boy not found");
     return deliveryBoy;
@@ -224,17 +241,20 @@ class DeliveryBoyService {
 
     // Agar pehle se koi order chal raha hai
     if (deliveryBoy.currentOrderId) {
-      throw new ApiError(400, "Aap pehle se ek order deliver kar rahe ho. Pehle use complete karo.");
+      throw new ApiError(
+        400,
+        "Aap pehle se ek order deliver kar rahe ho. Pehle use complete karo.",
+      );
     }
 
     const orders = await Order.find({
-      orderstatus   : "confirmed",
+      orderstatus: "confirmed",
       deliverystatus: "pending",
-      deliveryBoyId : null,
+      deliveryBoyId: null,
       "deliveryInfo.type": "delivery",
     })
       .populate("userId", "name phone email")
-      .sort({ createdAt: 1 })  // purana order pehle
+      .sort({ createdAt: 1 }) // purana order pehle
       .select("orderId items deliveryInfo pricing createdAt customerLocation");
 
     return orders;
@@ -245,38 +265,44 @@ class DeliveryBoyService {
   // ───────────────────────────────────────────────────────────────────────────
   static async acceptOrder(deliveryBoyId, orderId) {
     const deliveryBoy = await DeliveryBoy.findById(deliveryBoyId);
-    if (!deliveryBoy)           throw new ApiError(404, "Delivery boy not found");
-    if (!deliveryBoy.isOnline)  throw new ApiError(400, "Pehle online ho jao");
-    if (!deliveryBoy.isActive)  throw new ApiError(403, "Account inactive hai");
+    if (!deliveryBoy) throw new ApiError(404, "Delivery boy not found");
+    if (!deliveryBoy.isOnline) throw new ApiError(400, "Pehle online ho jao");
+    if (!deliveryBoy.isActive) throw new ApiError(403, "Account inactive hai");
 
     if (deliveryBoy.currentOrderId) {
-      throw new ApiError(400, "Pehle current order complete karo, tab naya accept karo");
+      throw new ApiError(
+        400,
+        "Pehle current order complete karo, tab naya accept karo",
+      );
     }
 
     // Order lock karo — atomic update with condition
     const order = await Order.findOneAndUpdate(
       {
-        _id           : orderId,
-        orderstatus   : "confirmed",
+        _id: orderId,
+        orderstatus: "confirmed",
         deliverystatus: "pending",
-        deliveryBoyId : null,   // race condition: sirf tab assign karo jab null ho
+        deliveryBoyId: null, // race condition: sirf tab assign karo jab null ho
       },
       {
-        deliveryBoyId       : deliveryBoyId,
+        deliveryBoyId: deliveryBoyId,
         deliveryBoyAssignedAt: new Date(),
-        deliverystatus      : "assigned",
+        deliverystatus: "assigned",
         $push: {
           statusHistory: {
             status: "assigned",
-            note  : `Delivery boy ${deliveryBoy.name} ne order accept kiya`,
+            note: `Delivery boy ${deliveryBoy.name} ne order accept kiya`,
           },
         },
       },
-      { new: true }
+      { new: true },
     ).populate("userId", "name phone email");
 
     if (!order) {
-      throw new ApiError(409, "Yeh order already kisi aur ne le liya ya available nahi hai");
+      throw new ApiError(
+        409,
+        "Yeh order already kisi aur ne le liya ya available nahi hai",
+      );
     }
 
     // Delivery boy ke currentOrderId update karo
@@ -291,7 +317,11 @@ class DeliveryBoyService {
   // UPDATE DELIVERY STATUS — out_for_delivery → delivered
   //   deliveryBoy sirf apna current order update kar sakta hai
   // ───────────────────────────────────────────────────────────────────────────
-  static async updateDeliveryStatus(deliveryBoyId, orderId, { deliverystatus, note }) {
+  static async updateDeliveryStatus(
+    deliveryBoyId,
+    orderId,
+    { deliverystatus, note },
+  ) {
     const validStatuses = ["out_for_delivery", "delivered"];
     if (!validStatuses.includes(deliverystatus)) {
       throw new ApiError(400, `Valid statuses: ${validStatuses.join(", ")}`);
@@ -302,16 +332,22 @@ class DeliveryBoyService {
 
     // Verify yahi delivery boy is order ka hai
     const order = await Order.findOne({
-      _id          : orderId,
+      _id: orderId,
       deliveryBoyId: deliveryBoyId,
     });
     if (!order) throw new ApiError(403, "Yeh order aapka nahi hai");
 
     // Status transition validation
-    if (deliverystatus === "out_for_delivery" && order.deliverystatus !== "assigned") {
+    if (
+      deliverystatus === "out_for_delivery" &&
+      order.deliverystatus !== "assigned"
+    ) {
       throw new ApiError(400, "Order pehle assigned hona chahiye");
     }
-    if (deliverystatus === "delivered" && order.deliverystatus !== "out_for_delivery") {
+    if (
+      deliverystatus === "delivered" &&
+      order.deliverystatus !== "out_for_delivery"
+    ) {
       throw new ApiError(400, "Order pehle out_for_delivery hona chahiye");
     }
 
@@ -322,20 +358,20 @@ class DeliveryBoyService {
         $push: {
           statusHistory: {
             status: deliverystatus,
-            note  : note || `Status updated to ${deliverystatus}`,
+            note: note || `Status updated to ${deliverystatus}`,
           },
         },
       },
-      { new: true }
+      { new: true },
     );
 
     // Agar delivered ho gaya — delivery boy free karo aur stats update karo
     if (deliverystatus === "delivered") {
       await DeliveryBoy.findByIdAndUpdate(deliveryBoyId, {
-        currentOrderId  : null,
+        currentOrderId: null,
         $inc: {
           totalDeliveries: 1,
-          totalEarnings  : order.pricing.deliveryCharge ?? 30,
+          totalEarnings: order.pricing.deliveryCharge ?? 30,
         },
       });
     }
@@ -355,9 +391,11 @@ class DeliveryBoyService {
     }
 
     const order = await Order.findById(deliveryBoy.currentOrderId)
-      .populate("userId",    "name phone email")
+      .populate("userId", "name phone email")
       .populate("paymentId", "status method amount")
-      .select("orderId items deliveryInfo pricing orderstatus deliverystatus customerLocation statusHistory createdAt deliveryBoyAssignedAt");
+      .select(
+        "orderId items deliveryInfo pricing orderstatus deliverystatus customerLocation statusHistory createdAt deliveryBoyAssignedAt",
+      );
 
     return { order };
   }
@@ -371,7 +409,10 @@ class DeliveryBoyService {
     if (!order) throw new ApiError(404, "Order not found");
 
     // Verify requesting user is the order owner
-    if (requestingUserId && order.userId?.toString() !== requestingUserId.toString()) {
+    if (
+      requestingUserId &&
+      order.userId?.toString() !== requestingUserId.toString()
+    ) {
       throw new ApiError(403, "Aap sirf apna order track kar sakte ho");
     }
 
@@ -380,21 +421,24 @@ class DeliveryBoyService {
     }
 
     if (!["assigned", "out_for_delivery"].includes(order.deliverystatus)) {
-      return { message: `Order ka status: ${order.deliverystatus}`, location: null };
+      return {
+        message: `Order ka status: ${order.deliverystatus}`,
+        location: null,
+      };
     }
 
     const deliveryBoy = await DeliveryBoy.findById(order.deliveryBoyId).select(
-      "name phone currentLocation lastLocationUpdatedAt vehicleType"
+      "name phone currentLocation lastLocationUpdatedAt vehicleType",
     );
 
     if (!deliveryBoy) throw new ApiError(404, "Delivery boy not found");
 
     return {
       deliveryBoy: {
-        name                : deliveryBoy.name,
-        phone               : deliveryBoy.phone,
-        vehicleType         : deliveryBoy.vehicleType,
-        currentLocation     : deliveryBoy.currentLocation,
+        name: deliveryBoy.name,
+        phone: deliveryBoy.phone,
+        vehicleType: deliveryBoy.vehicleType,
+        currentLocation: deliveryBoy.currentLocation,
         lastLocationUpdatedAt: deliveryBoy.lastLocationUpdatedAt,
       },
       orderStatus: order.deliverystatus,
@@ -410,11 +454,18 @@ class DeliveryBoyService {
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(Number(limit))
-        .select("orderId items.name items.quantity pricing deliveryInfo.address deliveryInfo.city createdAt deliveryRating"),
+        .select(
+          "orderId items.name items.quantity pricing deliveryInfo.address deliveryInfo.city createdAt deliveryRating",
+        ),
       Order.countDocuments({ deliveryBoyId, deliverystatus: "delivered" }),
     ]);
 
-    return { orders, total, page: Number(page), totalPages: Math.ceil(total / limit) };
+    return {
+      orders,
+      total,
+      page: Number(page),
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -442,12 +493,13 @@ class DeliveryBoyService {
     // Update delivery boy average rating
     const deliveryBoy = await DeliveryBoy.findById(order.deliveryBoyId);
     if (deliveryBoy) {
-      const newTotal  = deliveryBoy.totalRatings + 1;
-      const newAvg    =
-        (deliveryBoy.averageRating * deliveryBoy.totalRatings + rating) / newTotal;
+      const newTotal = deliveryBoy.totalRatings + 1;
+      const newAvg =
+        (deliveryBoy.averageRating * deliveryBoy.totalRatings + rating) /
+        newTotal;
       await DeliveryBoy.findByIdAndUpdate(order.deliveryBoyId, {
         averageRating: Math.round(newAvg * 10) / 10,
-        totalRatings : newTotal,
+        totalRatings: newTotal,
       });
     }
 
@@ -460,10 +512,13 @@ class DeliveryBoyService {
   static async approveDeliveryBoy(deliveryBoyId, { isApproved, isActive }) {
     const updates = {};
     if (isApproved !== undefined) updates.isApproved = isApproved;
-    if (isActive   !== undefined) updates.isActive   = isActive;
+    if (isActive !== undefined) updates.isActive = isActive;
 
-    const deliveryBoy = await DeliveryBoy.findByIdAndUpdate(deliveryBoyId, updates, { new: true })
-      .select("-password -refreshToken");
+    const deliveryBoy = await DeliveryBoy.findByIdAndUpdate(
+      deliveryBoyId,
+      updates,
+      { new: true },
+    ).select("-password -refreshToken");
 
     if (!deliveryBoy) throw new ApiError(404, "Delivery boy not found");
     return deliveryBoy;
@@ -473,7 +528,7 @@ class DeliveryBoyService {
   // ADMIN — Get all delivery boys of a restaurant
   // ───────────────────────────────────────────────────────────────────────────
   static async getAllDeliveryBoys({ page = 1, limit = 20, isOnline } = {}) {
-    const query = { };
+    const query = {};
     if (isOnline !== undefined) query.isOnline = isOnline === "true";
 
     const [deliveryBoys, total] = await Promise.all([
@@ -488,7 +543,7 @@ class DeliveryBoyService {
     return {
       deliveryBoys,
       total,
-      page      : Number(page),
+      page: Number(page),
       totalPages: Math.ceil(total / limit),
     };
   }
@@ -502,7 +557,7 @@ class DeliveryBoyService {
       DeliveryBoy.findById(deliveryBoyId),
     ]);
 
-    if (!order)       throw new ApiError(404, "Order not found");
+    if (!order) throw new ApiError(404, "Order not found");
     if (!deliveryBoy) throw new ApiError(404, "Delivery boy not found");
     if (!deliveryBoy.isActive || !deliveryBoy.isApproved) {
       throw new ApiError(400, "Delivery boy inactive ya unapproved hai");
@@ -514,20 +569,22 @@ class DeliveryBoyService {
     const updatedOrder = await Order.findByIdAndUpdate(
       orderId,
       {
-        deliveryBoyId       : deliveryBoyId,
+        deliveryBoyId: deliveryBoyId,
         deliveryBoyAssignedAt: new Date(),
-        deliverystatus      : "assigned",
+        deliverystatus: "assigned",
         $push: {
           statusHistory: {
             status: "assigned",
-            note  : `Admin ne ${deliveryBoy.name} ko assign kiya`,
+            note: `Admin ne ${deliveryBoy.name} ko assign kiya`,
           },
         },
       },
-      { new: true }
+      { new: true },
     );
 
-    await DeliveryBoy.findByIdAndUpdate(deliveryBoyId, { currentOrderId: orderId });
+    await DeliveryBoy.findByIdAndUpdate(deliveryBoyId, {
+      currentOrderId: orderId,
+    });
 
     return updatedOrder;
   }
@@ -538,7 +595,10 @@ class DeliveryBoyService {
   static async getProfile(deliveryBoyId) {
     const deliveryBoy = await DeliveryBoy.findById(deliveryBoyId)
       .select("-password -refreshToken -otp -otpExpiry")
-      .populate("currentOrderId", "orderId deliverystatus deliveryInfo.address");
+      .populate(
+        "currentOrderId",
+        "orderId deliverystatus deliveryInfo.address",
+      );
 
     if (!deliveryBoy) throw new ApiError(404, "Delivery boy not found");
     return deliveryBoy;
@@ -547,15 +607,21 @@ class DeliveryBoyService {
   // ───────────────────────────────────────────────────────────────────────────
   // UPDATE PROFILE
   // ───────────────────────────────────────────────────────────────────────────
-  static async updateProfile(deliveryBoyId, { name, phone, vehicleType, vehicleNumber }) {
+  static async updateProfile(
+    deliveryBoyId,
+    { name, phone, vehicleType, vehicleNumber },
+  ) {
     const updates = {};
-    if (name         ) updates.name          = name;
-    if (phone        ) updates.phone         = phone;
-    if (vehicleType  ) updates.vehicleType   = vehicleType;
+    if (name) updates.name = name;
+    if (phone) updates.phone = phone;
+    if (vehicleType) updates.vehicleType = vehicleType;
     if (vehicleNumber) updates.vehicleNumber = vehicleNumber;
 
-    const deliveryBoy = await DeliveryBoy.findByIdAndUpdate(deliveryBoyId, updates, { new: true })
-      .select("-password -refreshToken");
+    const deliveryBoy = await DeliveryBoy.findByIdAndUpdate(
+      deliveryBoyId,
+      updates,
+      { new: true },
+    ).select("-password -refreshToken");
 
     if (!deliveryBoy) throw new ApiError(404, "Delivery boy not found");
     return deliveryBoy;
@@ -596,9 +662,10 @@ class DeliveryBoyService {
     return {
       totalEarnings: deliveryBoy.totalEarnings,
       totalDeliveries: deliveryBoy.totalDeliveries,
-      averagePerDelivery: deliveryBoy.totalDeliveries > 0
-        ? (deliveryBoy.totalEarnings / deliveryBoy.totalDeliveries).toFixed(2)
-        : 0,
+      averagePerDelivery:
+        deliveryBoy.totalDeliveries > 0
+          ? (deliveryBoy.totalEarnings / deliveryBoy.totalDeliveries).toFixed(2)
+          : 0,
       averageRating: deliveryBoy.averageRating,
       totalRatings: deliveryBoy.totalRatings,
     };

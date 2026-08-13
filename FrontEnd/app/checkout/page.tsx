@@ -46,7 +46,7 @@ import type { SelectedItem } from "@/components/providers/order-selection-provid
 import { useOrderSelection } from "@/components/providers/order-selection-provider";
 
 const RESTAURANT_ID = process.env.NEXT_PUBLIC_RESTAURANT_ID!;
-const SESSION_KEY = "hotelhub_order_selection";
+const SESSION_KEY = "BiteNest_order_selection";
 
 // ─── Razorpay script loader ───────────────────────────────────────────────────
 const loadRazorpayScript = (): Promise<boolean> =>
@@ -232,7 +232,7 @@ function CheckoutInner() {
             amount: payData.amount,
             currency: payData.currency,
             order_id: payData.razorpayOrderId,
-            name: "HotelHub",
+            name: "BiteNest",
             description: "Food Order",
             prefill: {
               name: `${form.firstName} ${form.lastName}`,

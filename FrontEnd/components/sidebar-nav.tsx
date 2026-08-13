@@ -287,7 +287,7 @@ export function SidebarNav() {
             <div className="flex flex-col min-w-0">
               <span className="font-satisfy text-xl bg-gradient-to-r from-brand-primary to-brand-secondary
                 bg-clip-text text-transparent leading-tight truncate">
-                WebX Chili Eats
+                BiteNest
               </span>
               <span className="text-xs text-gray-500">Delicious &amp; Fresh</span>
             </div>

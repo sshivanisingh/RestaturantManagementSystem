@@ -15,7 +15,7 @@ import { useAuth } from "../providers/auth-provider";
 import { useUserLogout } from "@/src/hooks/useUser";
 
 const NAV_LINKS = [
-  { label: "Home", href: "/restaurant" },
+  { label: "Home", href: "/resturent" },
   { label: "Reservations", href: "/userreservation" },
   { label: "Items", href: "/items" },
   { label: "About", href: "/about" },
@@ -55,7 +55,7 @@ export default function Navbar() {
               className="text-xl font-satisfy tracking-wide"
               style={{ color: "hsl(var(--brand-primary))" }}
             >
-              HotelHub
+              BiteNest
             </span>
           </Link>
 

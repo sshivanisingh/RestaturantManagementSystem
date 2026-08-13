@@ -1,28 +1,35 @@
-import Razorpay   from "razorpay";
-import crypto      from "crypto";
-import { Order }   from "../models/order.payment.model.js";
+import Razorpay from "razorpay";
+import crypto from "crypto";
+import { Order } from "../models/order.payment.model.js";
 import { Payment } from "../models/order.payment.model.js";
-import { User }    from "../models/user.model.js";
-import { MenuItem} from "../models/menuItem.model.js";
-import { ApiError} from "../utils/ApiError.js";
-import { sendEmail}from "../utils/sendEmail.js";
+import { User } from "../models/user.model.js";
+import { MenuItem } from "../models/menuItem.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { sendEmail } from "../utils/sendEmail.js";
 
 // ─── Razorpay instance ────────────────────────────────────────────────────────
 const razorpay = new Razorpay({
-  key_id    : process.env.RAZORPAY_KEY_ID,
+  key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
 // ─── Temp password helper ─────────────────────────────────────────────────────
 const generateTempPassword = () => {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#";
-  return Array.from({ length: 10 }, () =>
-    chars[Math.floor(Math.random() * chars.length)]
+  return Array.from(
+    { length: 10 },
+    () => chars[Math.floor(Math.random() * chars.length)],
   ).join("");
 };
 
 // ─── Welcome email template ───────────────────────────────────────────────────
-const welcomeEmailTemplate = ({ name, email, tempPassword, loginUrl, orderId }) => `
+const welcomeEmailTemplate = ({
+  name,
+  email,
+  tempPassword,
+  loginUrl,
+  orderId,
+}) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -72,7 +79,7 @@ const welcomeEmailTemplate = ({ name, email, tempPassword, loginUrl, orderId }) 
       </p>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} HotelHub · Sent because you placed an order.</p>
+      <p>© ${new Date().getFullYear()} BiteNest · Sent because you placed an order.</p>
     </div>
   </div>
 </body>
@@ -80,7 +87,6 @@ const welcomeEmailTemplate = ({ name, email, tempPassword, loginUrl, orderId }) 
 
 // ═════════════════════════════════════════════════════════════════════════════
 class OrderService {
-
   // ─────────────────────────────────────────────────────────────────────
   // STEP 1 — Create Order
   // ───────────────────────────────────────────────────────────────────────────
@@ -88,40 +94,49 @@ class OrderService {
     const { items, deliveryInfo, paymentMethod, couponCode, notes } = orderData;
 
     const menuItemIds = items && items.map((i) => i.menuItemId);
-    const dbItems     = await MenuItem.find({ _id: { $in: menuItemIds }, isActive: true });
-   
+    const dbItems = await MenuItem.find({
+      _id: { $in: menuItemIds },
+      isActive: true,
+    });
+
     const itemsLength = items && items.length;
     if (dbItems.length !== itemsLength) {
       throw new ApiError(400, "One or more items are unavailable");
     }
 
     const verifiedItems = items.map((reqItem) => {
-      const dbItem = dbItems.find((d) => d._id.toString() === reqItem.menuItemId);
+      const dbItem = dbItems.find(
+        (d) => d._id.toString() === reqItem.menuItemId,
+      );
       return {
         menuItemId: dbItem._id,
-        name      : dbItem.name,
-        image     : dbItem.image,
-        price     : dbItem.discountedPrice ?? dbItem.price,
-        quantity  : reqItem.quantity,
+        name: dbItem.name,
+        image: dbItem.image,
+        price: dbItem.discountedPrice ?? dbItem.price,
+        quantity: reqItem.quantity,
       };
     });
 
-    const subtotal       = verifiedItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-    const tax            = Math.round(subtotal * 0.05);
-    const deliveryCharge = deliveryInfo.type === "pickup" ? 0 : subtotal >= 500 ? 0 : 40;
-    const discount       = 0;
-    const total          = subtotal + tax + deliveryCharge - discount;
-    const pricing        = { subtotal, tax, deliveryCharge, discount, total };
+    const subtotal = verifiedItems.reduce(
+      (sum, i) => sum + i.price * i.quantity,
+      0,
+    );
+    const tax = Math.round(subtotal * 0.05);
+    const deliveryCharge =
+      deliveryInfo.type === "pickup" ? 0 : subtotal >= 500 ? 0 : 40;
+    const discount = 0;
+    const total = subtotal + tax + deliveryCharge - discount;
+    const pricing = { subtotal, tax, deliveryCharge, discount, total };
 
     const order = await Order.create({
-      items        : verifiedItems,
+      items: verifiedItems,
       deliveryInfo,
       pricing,
       paymentMethod,
-      couponCode   : couponCode || null,
-      notes        : notes     || null,
-      orderstatus       : "pending",
-      isGuestOrder : true,
+      couponCode: couponCode || null,
+      notes: notes || null,
+      orderstatus: "pending",
+      isGuestOrder: true,
       statusHistory: [{ status: "pending", note: "Order initiated" }],
     });
 
@@ -132,42 +147,38 @@ class OrderService {
   // STEP 2A — Initiate Razorpay Payment
   // ───────────────────────────────────────────────────────────────────────────
 
-
-
-
   static async initiateRazorpayPayment(orderId) {
     const order = await Order.findById(orderId);
     if (!order) throw new ApiError(404, "Order not found");
     // if (order.status !== "pending") throw new ApiError(400, "Order already processed");
 
     const razorpayOrder = await razorpay.orders.create({
-      amount  : order.pricing.total * 100,
+      amount: order.pricing.total * 100,
       currency: "INR",
-      receipt : order._id.toString(),
-      notes   : {
-        orderId     : order._id ,
+      receipt: order._id.toString(),
+      notes: {
+        orderId: order._id,
       },
     });
     const payment = await Payment.create({
-      orderId        : order._id,
-      amount         : order.pricing.total,
-      currency       : "INR",
-      method         : "RAZORPAY",
-      status         : "pending",
-      gatewayOrderId : razorpayOrder.id,
-      customerEmail  : order.deliveryInfo.email,
-      customerPhone  : order.deliveryInfo.phone,
+      orderId: order._id,
+      amount: order.pricing.total,
+      currency: "INR",
+      method: "RAZORPAY",
+      status: "pending",
+      gatewayOrderId: razorpayOrder.id,
+      customerEmail: order.deliveryInfo.email,
+      customerPhone: order.deliveryInfo.phone,
     });
-
 
     await Order.findByIdAndUpdate(orderId, { paymentId: payment._id });
 
     return {
       razorpayOrderId: razorpayOrder.id,
-      amount         : razorpayOrder.amount,
-      currency       : razorpayOrder.currency,
-      paymentId      : payment._id,
-      keyId          : process.env.RAZORPAY_KEY_ID,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      paymentId: payment._id,
+      keyId: process.env.RAZORPAY_KEY_ID,
     };
   }
 
@@ -182,7 +193,7 @@ class OrderService {
       paymentId,
     } = paymentData;
 
-    const body     = razorpay_order_id + "|" + razorpay_payment_id;
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expected = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(body)
@@ -190,9 +201,12 @@ class OrderService {
 
     if (expected !== razorpay_signature) {
       await Payment.findByIdAndUpdate(paymentId, { status: "failed" });
-      throw new ApiError(400, "Payment verification failed — invalid signature");
+      throw new ApiError(
+        400,
+        "Payment verification failed — invalid signature",
+      );
     }
-    
+
     // FIX: idempotency — if already paid, skip reprocessing
     const existingPayment = await Payment.findById(paymentId);
     if (existingPayment?.status === "paid") {
@@ -203,13 +217,17 @@ class OrderService {
     const payment = await Payment.findByIdAndUpdate(
       paymentId,
       {
-        status         : "paid",
-        transactionId  : razorpay_payment_id,
-        gatewayOrderId : razorpay_order_id,
-        gatewayResponse: { razorpay_order_id, razorpay_payment_id, razorpay_signature },
-        paidAt         : new Date(),
+        status: "paid",
+        transactionId: razorpay_payment_id,
+        gatewayOrderId: razorpay_order_id,
+        gatewayResponse: {
+          razorpay_order_id,
+          razorpay_payment_id,
+          razorpay_signature,
+        },
+        paidAt: new Date(),
       },
-      { new: true }
+      { new: true },
     );
 
     if (!payment) throw new ApiError(404, "Payment record not found");
@@ -218,12 +236,15 @@ class OrderService {
       payment.orderId,
       {
         orderstatus: "confirmed",
-        $push : { statusHistory: { status: "confirmed", note: "Razorpay payment verified" } },
+        $push: {
+          statusHistory: {
+            status: "confirmed",
+            note: "Razorpay payment verified",
+          },
+        },
       },
-      { new: true }
+      { new: true },
     );
-
- 
 
     if (order.deliveryInfo?.email) {
       await OrderService._handleUserAccount(order);
@@ -239,23 +260,23 @@ class OrderService {
     if (!order) throw new ApiError(404, "Order not found");
 
     const payment = await Payment.create({
-      orderId      : order._id,
-      amount       : order.pricing.total,
-      method       : "COD",
-      status       : "pending",
+      orderId: order._id,
+      amount: order.pricing.total,
+      method: "COD",
+      status: "pending",
       customerEmail: order.deliveryInfo.email,
       customerPhone: order.deliveryInfo.phone,
     });
 
-
     await Order.findByIdAndUpdate(orderId, {
       paymentId: payment._id,
-      orderstatus   : "confirmed",
+      orderstatus: "confirmed",
       deliverystatus: "pending",
-      $push    : { statusHistory: { status: "pending", note: "COD order pending" } },
+      $push: {
+        statusHistory: { status: "pending", note: "COD order pending" },
+      },
     });
 
-    
     const updatedOrder = await Order.findById(orderId);
     if (updatedOrder.deliveryInfo?.email) {
       await OrderService._handleUserAccount(updatedOrder);
@@ -266,54 +287,77 @@ class OrderService {
   // ───────────────────────────────────────────────────────────────────────────
   // STEP 3 — Update Order Status (admin)
   // ───────────────────────────────────────────────────────────────────────────
- static async updateOrderStatus(orderId, { orderstatus, deliverystatus, note }) {
-  const validOrderStatus    = ["confirmed", "cancelled"];
-  const validDeliveryStatus = ["pending", "out_for_delivery", "delivered"];
+  static async updateOrderStatus(
+    orderId,
+    { orderstatus, deliverystatus, note },
+  ) {
+    const validOrderStatus = ["confirmed", "cancelled"];
+    const validDeliveryStatus = ["pending", "out_for_delivery", "delivered"];
 
-  
-  const updates = {};
+    const updates = {};
 
-  if (orderstatus) {
-    if (!validOrderStatus.includes(orderstatus))
-      throw new ApiError(400, `Invalid orderstatus. Valid: ${validOrderStatus.join(", ")}`);
-    updates.orderstatus = orderstatus;
+    if (orderstatus) {
+      if (!validOrderStatus.includes(orderstatus))
+        throw new ApiError(
+          400,
+          `Invalid orderstatus. Valid: ${validOrderStatus.join(", ")}`,
+        );
+      updates.orderstatus = orderstatus;
+    }
+
+    if (deliverystatus) {
+      if (!validDeliveryStatus.includes(deliverystatus))
+        throw new ApiError(
+          400,
+          `Invalid deliverystatus. Valid: ${validDeliveryStatus.join(", ")}`,
+        );
+      updates.deliverystatus = deliverystatus;
+    }
+
+    if (!Object.keys(updates).length)
+      throw new ApiError(
+        400,
+        "orderstatus ya deliverystatus dono mein se ek required hai.",
+      );
+
+    updates.$push = {
+      statusHistory: {
+        status: orderstatus || deliverystatus,
+        note: note || "",
+      },
+    };
+
+    const order = await Order.findByIdAndUpdate(orderId, updates, {
+      new: true,
+    });
+    if (!order) throw new ApiError(404, "Order not found");
+    return order;
   }
-
-  if (deliverystatus) {
-    if (!validDeliveryStatus.includes(deliverystatus))
-      throw new ApiError(400, `Invalid deliverystatus. Valid: ${validDeliveryStatus.join(", ")}`);
-    updates.deliverystatus = deliverystatus;
-  }
-
-  if (!Object.keys(updates).length)
-    throw new ApiError(400, "orderstatus ya deliverystatus dono mein se ek required hai.");
-
-  updates.$push = { statusHistory: { status: orderstatus || deliverystatus, note: note || "" } };
-
-  const order = await Order.findByIdAndUpdate(orderId, updates, { new: true });
-  if (!order) throw new ApiError(404, "Order not found");
-  return order;
-}
 
   // ───────────────────────────────────────────────────────────────────────────
   // GET — All orders (admin)
   // ───────────────────────────────────────────────────────────────────────────
   static async getAllOrders(filters = {}) {
     const { status, page = 1, limit = 20 } = filters;
-    const query = {  };
+    const query = {};
     if (status) query.orderstatus = status;
 
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate("paymentId", "status method amount paidAt transactionId")
-        .populate("userId",    "name email phone")
+        .populate("userId", "name email phone")
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(Number(limit)),
       Order.countDocuments(query),
     ]);
 
-    return { orders, total, page: Number(page), totalPages: Math.ceil(total / limit) };
+    return {
+      orders,
+      total,
+      page: Number(page),
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -321,8 +365,11 @@ class OrderService {
   // ───────────────────────────────────────────────────────────────────────────
   static async getOrderById(orderId) {
     const order = await Order.findById(orderId)
-      .populate("paymentId", "status method amount paidAt transactionId gatewayOrderId")
-      .populate("userId",    "name email phone")
+      .populate(
+        "paymentId",
+        "status method amount paidAt transactionId gatewayOrderId",
+      )
+      .populate("userId", "name email phone")
       .populate("items.menuItemId", "name image price");
     if (!order) throw new ApiError(404, "Order not found");
     return order;
@@ -332,25 +379,26 @@ class OrderService {
   // Razorpay Webhook
   // ───────────────────────────────────────────────────────────────────────────
   static async handleRazorpayWebhook(rawBody, signature) {
-    const secret   = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const expected = crypto
       .createHmac("sha256", secret)
       .update(rawBody)
       .digest("hex");
 
-    if (expected !== signature) throw new ApiError(400, "Invalid webhook signature");
+    if (expected !== signature)
+      throw new ApiError(400, "Invalid webhook signature");
 
     const event = JSON.parse(rawBody);
 
     if (event.event === "payment.captured") {
-      const rp      = event.payload.payment.entity;
+      const rp = event.payload.payment.entity;
       const payment = await Payment.findOne({ gatewayOrderId: rp.order_id });
 
       // FIX: idempotency — if already paid, skip processing again
       if (payment && payment.status !== "paid") {
-        payment.status          = "paid";
-        payment.transactionId   = rp.id;
-        payment.paidAt          = new Date();
+        payment.status = "paid";
+        payment.transactionId = rp.id;
+        payment.paidAt = new Date();
         payment.gatewayResponse = rp;
         await payment.save();
 
@@ -358,9 +406,14 @@ class OrderService {
           payment.orderId,
           {
             orderstatus: "confirmed",
-            $push : { statusHistory: { status: "confirmed", note: "Webhook: payment captured" } },
+            $push: {
+              statusHistory: {
+                status: "confirmed",
+                note: "Webhook: payment captured",
+              },
+            },
           },
-          { new: true }
+          { new: true },
         );
 
         if (order?.deliveryInfo?.email) {
@@ -370,15 +423,20 @@ class OrderService {
     }
 
     if (event.event === "payment.failed") {
-      const rp      = event.payload.payment.entity;
+      const rp = event.payload.payment.entity;
       const payment = await Payment.findOne({ gatewayOrderId: rp.order_id });
       if (payment) {
-        payment.status          = "failed";
+        payment.status = "failed";
         payment.gatewayResponse = rp;
         await payment.save();
         await Order.findByIdAndUpdate(payment.orderId, {
           orderstatus: "cancelled",
-          $push : { statusHistory: { status: "cancelled", note: "Webhook: payment failed" } },
+          $push: {
+            statusHistory: {
+              status: "cancelled",
+              note: "Webhook: payment failed",
+            },
+          },
         });
       }
     }
@@ -397,12 +455,8 @@ class OrderService {
     const { name, email, phone } = order.deliveryInfo;
     if (!email) return;
 
-    
-
     // Look up by email — the login key — to detect returning customers.
     const existingUser = await User.findOne({ email });
-  
-    
 
     if (existingUser) {
       // Existing user — just link the order to their account
@@ -410,7 +464,7 @@ class OrderService {
         $addToSet: { orders: order._id },
       });
       await Order.findByIdAndUpdate(order._id, {
-        userId      : existingUser._id,
+        userId: existingUser._id,
         isGuestOrder: false,
       });
       return;
@@ -428,11 +482,11 @@ class OrderService {
         restaurantId: order.restaurantId,
         name,
         email,
-        phone        : phone || null,
-        password     : tempPassword,
+        phone: phone || null,
+        password: tempPassword,
         // FIX 1: isActive = true — user can login immediately, no activation step needed
-        isActive     : true,
-        orders       : [order._id],
+        isActive: true,
+        orders: [order._id],
       });
       await newUser.save();
     } catch (err) {
@@ -444,7 +498,7 @@ class OrderService {
             $addToSet: { orders: order._id },
           });
           await Order.findByIdAndUpdate(order._id, {
-            userId      : raceUser._id,
+            userId: raceUser._id,
             isGuestOrder: false,
           });
         }
@@ -455,7 +509,7 @@ class OrderService {
 
     // Link user to order
     await Order.findByIdAndUpdate(order._id, {
-      userId      : newUser._id,
+      userId: newUser._id,
       isGuestOrder: false,
     });
 
@@ -464,9 +518,9 @@ class OrderService {
 
     // Send welcome email with credentials
     await sendEmail({
-      to     : email,
+      to: email,
       subject: `🎉 Order Confirmed & Your Account is Ready — ${order.orderId}`,
-      html   : welcomeEmailTemplate({
+      html: welcomeEmailTemplate({
         name,
         email,
         tempPassword,

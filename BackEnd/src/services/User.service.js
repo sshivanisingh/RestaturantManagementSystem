@@ -81,7 +81,7 @@ const welcomeEmailTemplate = ({ name, email, tempPassword, activateUrl, orderId 
       </p>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} WebX Chili Eats · You're receiving this because you placed an order.</p>
+      <p>© ${new Date().getFullYear()} BiteNest · You're receiving this because you placed an order.</p>
     </div>
   </div>
 </body>

@@ -1,49 +1,50 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Heart, ShoppingBag, ShoppingCart, Zap } from "lucide-react"
-import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
-import { useAuth } from "@/components/providers/auth-provider"
-import { useToast } from "@/components/ui/use-toast"
-import { ProductCard } from "@/components/product-card"
-import { useGetWishlist, useToggleWishlist } from "@/src/hooks/useUser"
-import { useOrderSelection } from "@/components/providers/order-selection-provider"
-import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button";
+import { Heart, ShoppingBag, ShoppingCart, Zap } from "lucide-react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/components/providers/auth-provider";
+import { useToast } from "@/components/ui/use-toast";
+import { ProductCard } from "@/components/product-card";
+import { useGetWishlist, useToggleWishlist } from "@/src/hooks/useUser";
+import { useOrderSelection } from "@/components/providers/order-selection-provider";
+import { useRouter } from "next/navigation";
 
-const SESSION_KEY   = "hotelhub_order_selection"
-const RESTAURANT_ID = process.env.NEXT_PUBLIC_RESTAURANT_ID!
+const SESSION_KEY = "BiteNest_order_selection";
+const RESTAURANT_ID = process.env.NEXT_PUBLIC_RESTAURANT_ID!;
 
 function FavoritesContent() {
-  const { isAuthenticated } = useAuth()
-  const { toast } = useToast()
-  const router = useRouter()
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
 
-  const { data: wishlistResponse, isLoading } = useGetWishlist()
-  const wishlistItems = wishlistResponse?.data || []
+  const { data: wishlistResponse, isLoading } = useGetWishlist();
+  const wishlistItems = wishlistResponse?.data || [];
 
-  const { selectedItems, totalItems, totalPrice, clearSelection } = useOrderSelection()
+  const { selectedItems, totalItems, totalPrice, clearSelection } =
+    useOrderSelection();
 
   const handleProceedToCheckout = () => {
     if (!isAuthenticated) {
-      router.push("/login?redirect=/checkout")
-      return
+      router.push("/login?redirect=/checkout");
+      return;
     }
-    if (selectedItems.length === 0) return
+    if (selectedItems.length === 0) return;
 
     const items = selectedItems.map((i) => ({
-      id          : i.id,
-      title       : i.title,
-      price       : i.price,
-      quantity    : i.quantity,
-      image       : i.image,
-      type        : i.type,
+      id: i.id,
+      title: i.title,
+      price: i.price,
+      quantity: i.quantity,
+      image: i.image,
+      type: i.type,
       restaurantId: (i as any).restaurantId || RESTAURANT_ID,
-    }))
+    }));
 
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(items))
-    router.push("/checkout?source=selection")
-  }
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(items));
+    router.push("/checkout?source=selection");
+  };
 
   if (!isAuthenticated) {
     return (
@@ -59,7 +60,9 @@ function FavoritesContent() {
             </div>
           </div>
           <h2 className="text-2xl font-medium mb-2">Please Login</h2>
-          <p className="text-gray-600 mb-6">Please login to view your wishlist items.</p>
+          <p className="text-gray-600 mb-6">
+            Please login to view your wishlist items.
+          </p>
           <Button
             className="bg-gradient-to-r from-brand-primary to-purple-600 hover:from-brand-primary/90 hover:to-purple-700 text-white"
             size="lg"
@@ -69,7 +72,7 @@ function FavoritesContent() {
           </Button>
         </motion.div>
       </div>
-    )
+    );
   }
 
   if (isLoading) {
@@ -80,7 +83,7 @@ function FavoritesContent() {
           <p className="text-gray-600">Loading your wishlist...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -98,7 +101,10 @@ function FavoritesContent() {
           <p className="text-gray-600">All your favorite dishes in one place</p>
           {wishlistItems.length > 0 && (
             <p className="text-sm text-gray-400 mt-1">
-              Click <strong className="text-brand-primary">Order Now</strong> on any item to select it, then tap <strong className="text-brand-primary">Proceed to Order</strong> below
+              Click <strong className="text-brand-primary">Order Now</strong> on
+              any item to select it, then tap{" "}
+              <strong className="text-brand-primary">Proceed to Order</strong>{" "}
+              below
             </p>
           )}
         </motion.div>
@@ -130,7 +136,10 @@ function FavoritesContent() {
               </div>
             </div>
             <h2 className="text-2xl font-medium mb-2">No favorites yet</h2>
-            <p className="text-gray-600 mb-6">Start adding your favorite dishes to create your personal collection</p>
+            <p className="text-gray-600 mb-6">
+              Start adding your favorite dishes to create your personal
+              collection
+            </p>
             <Button
               className="bg-gradient-to-r from-brand-primary to-purple-600 hover:from-brand-primary/90 hover:to-purple-700 text-white"
               size="lg"
@@ -184,7 +193,10 @@ function FavoritesContent() {
               {/* Mini item preview */}
               <div className="bg-gray-50 px-5 py-2 flex items-center gap-2 overflow-x-auto">
                 {selectedItems.map((item) => (
-                  <span key={item.id} className="flex-shrink-0 text-xs bg-white border border-gray-200 rounded-full px-3 py-1 text-gray-700">
+                  <span
+                    key={item.id}
+                    className="flex-shrink-0 text-xs bg-white border border-gray-200 rounded-full px-3 py-1 text-gray-700"
+                  >
                     {item.title} × {item.quantity}
                   </span>
                 ))}
@@ -194,9 +206,9 @@ function FavoritesContent() {
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }
 
 export default function FavoritesPage() {
-  return <FavoritesContent />
+  return <FavoritesContent />;
 }
