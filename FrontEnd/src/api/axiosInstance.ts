@@ -10,12 +10,12 @@ const BASE_URL: string =
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
 const api: AxiosInstance = axios.create({
-  baseURL:         BASE_URL,
-  withCredentials: true,        // send httpOnly cookies (refresh token)
-  timeout:         15_000,      // 15 seconds
+  baseURL: BASE_URL,
+  withCredentials: true, // send httpOnly cookies (refresh token)
+  timeout: 15_000, // 15 seconds
   headers: {
     "Content-Type": "application/json",
-    Accept:         "application/json",
+    Accept: "application/json",
   },
 });
 
@@ -32,13 +32,13 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // ─── Token Refresh Logic ──────────────────────────────────────────────────────
 interface PendingRequest {
   resolve: (token: string) => void;
-  reject:  (error: unknown) => void;
+  reject: (error: unknown) => void;
 }
 
 let isRefreshing = false;
@@ -69,9 +69,14 @@ api.interceptors.response.use(
 
     // Only attempt refresh if user actually had a token (logged-in session expired)
     // Unauthenticated users hitting protected APIs should just get a rejected promise — no redirect
-    const hadToken = !!localStorage.getItem("accessToken")
+    const hadToken = !!localStorage.getItem("accessToken");
 
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint && hadToken) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthEndpoint &&
+      hadToken
+    ) {
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -84,11 +89,11 @@ api.interceptors.response.use(
       }
 
       originalRequest._retry = true;
-      isRefreshing            = true;
+      isRefreshing = true;
 
       try {
         const { data } = await api.post<{ data: { accessToken: string } }>(
-          "/auth/refresh-token"
+          "/auth/refresh-token",
         );
         const newToken = data.data.accessToken;
 
@@ -99,9 +104,13 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch (refreshError) {
+        console.error("❌ Token refresh failed:", refreshError);
+
         processQueue(refreshError, null);
+
         localStorage.removeItem("accessToken");
-        window.location.href = "/login";
+
+        // Do NOT redirect automatically
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -109,7 +118,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;
