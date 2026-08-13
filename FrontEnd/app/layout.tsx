@@ -28,6 +28,9 @@ const satisfy = Satisfy({
 
 export const metadata: Metadata = {
   title: "BiteNest - Restaurant & Food Delivery",
+  icons: {
+    icon: "/logo/png",
+  },
   description:
     "A modern restaurant point of sale system with e-commerce capabilities",
 };
