@@ -1,41 +1,15 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { ApiError } from "./ApiError.js";
 import { OTP } from "../models/otp.model.js";
 
+// ─── Resend Client ────────────────────────────────────────────────────────────
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 // ─── OTP Generator ────────────────────────────────────────────────────────────
+
 export const generateOtp = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
-
-// ─── SMTP Transporter ─────────────────────────────────────────────────────────
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-
-  // 587 = STARTTLS
-  // 465 = SSL
-  secure: Number(process.env.SMTP_PORT) === 465,
-
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-});
-
-// ─── Verify SMTP when server starts ───────────────────────────────────────────
-
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ SMTP connection failed:");
-    console.error(error);
-  } else {
-    console.log("✅ SMTP server is ready:", success);
-  }
-});
 
 // Legacy in-memory store
 export const otpStore = new Map();
@@ -61,12 +35,11 @@ export const sendOtp = async (email, name = "User") => {
     });
 
     console.log("💾 OTP saved to MongoDB");
-
     console.log("📧 Sending OTP email to:", email);
 
-    const info = await transporter.sendMail({
-      from: `"${process.env.APP_NAME || "BiteNest"}" <${process.env.SMTP_USER}>`,
-      to: email,
+    const { data, error } = await resend.emails.send({
+      from: "BiteNest <onboarding@resend.dev>",
+      to: [email],
       subject: "Your Verification OTP",
 
       html: `
@@ -111,25 +84,38 @@ export const sendOtp = async (email, name = "User") => {
       text: `Hello ${name}, your OTP is: ${otp} (valid 10 minutes)`,
     });
 
+    if (error) {
+      console.error("❌ Resend error:");
+      console.error(error);
+
+      // Remove OTP because email wasn't sent
+      await OTP.deleteMany({
+        email: normalizedEmail,
+      }).catch((cleanupError) => {
+        console.error("❌ OTP cleanup failed:", cleanupError);
+      });
+
+      throw new ApiError(500, "Failed to send OTP. Please try again.");
+    }
+
     console.log("✅ OTP email sent successfully");
-    console.log("📨 Message ID:", info.messageId);
+    console.log("📨 Resend ID:", data?.id);
   } catch (error) {
     console.error("❌ OTP email error:");
     console.error(error);
 
-    // Clean up OTP if email failed
+    // Remove OTP if email sending failed
     await OTP.deleteMany({
       email: normalizedEmail,
     }).catch((cleanupError) => {
       console.error("❌ OTP cleanup failed:", cleanupError);
     });
 
-    throw new ApiError(
-      500,
-      "Failed to send OTP. Please try again.",
-      [],
-      error?.stack,
-    );
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    throw new ApiError(500, "Failed to send OTP. Please try again.");
   }
 
   return {

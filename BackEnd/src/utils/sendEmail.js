@@ -1,37 +1,6 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-// ─── SMTP Transporter ─────────────────────────────────────────────────────────
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-
-  // Gmail:
-  // 587 → STARTTLS
-  // 465 → SSL
-  secure: Number(process.env.SMTP_PORT) === 465,
-
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-
-  // Useful for diagnosing SMTP connection problems
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-});
-
-// ─── Verify SMTP configuration when server starts ─────────────────────────────
-
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ SMTP connection failed:");
-    console.error(error);
-  } else {
-    console.log("✅ SMTP server is ready:", success);
-  }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ─── Send Email ───────────────────────────────────────────────────────────────
 
@@ -40,28 +9,32 @@ const sendEmail = async ({ to, subject, html, text }) => {
     console.log("📧 Sending email...");
     console.log("   To:", to);
     console.log("   Subject:", subject);
-    console.log("   SMTP Host:", process.env.SMTP_HOST);
-    console.log("   SMTP Port:", process.env.SMTP_PORT);
-    console.log("   SMTP User:", process.env.SMTP_USER);
 
-    const info = await transporter.sendMail({
-      from: `"${process.env.APP_NAME || "BiteNest"}" <${process.env.SMTP_USER}>`,
-      to,
+    const { data, error } = await resend.emails.send({
+      from: "BiteNest <onboarding@resend.dev>",
+      to: [to],
       subject,
       html,
       text,
     });
 
-    console.log("✅ Email sent successfully");
-    console.log("   Message ID:", info.messageId);
+    if (error) {
+      console.error("❌ Resend email error:");
+      console.error(error);
 
-    return info;
+      throw new Error(error.message || "Email could not be sent");
+    }
+
+    console.log("✅ Email sent successfully");
+    console.log("   Resend ID:", data?.id);
+
+    return data;
   } catch (error) {
     console.error("❌ Email sending failed:");
     console.error(error);
 
     throw new Error(
-      `Email could not be sent: ${error.message || "Unknown SMTP error"}`,
+      `Email could not be sent: ${error.message || "Unknown email error"}`,
     );
   }
 };

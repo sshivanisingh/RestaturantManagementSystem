@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
-     "start": "node src/index.js"
+    "start": "node src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +29,7 @@
     "nodemailer": "^8.0.2",
     "nodemon": "^3.1.14",
     "razorpay": "^2.9.6",
+    "resend": "^6.19.0",
     "winston": "^3.19.0",
     "xss-clean": "^0.1.4"
   }

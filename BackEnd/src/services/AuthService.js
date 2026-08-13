@@ -1,358 +1,587 @@
 import crypto from "crypto";
-import jwt    from "jsonwebtoken";
-import { Restaurant }          from "../models/restaurant.model.js";
-import { ApiError }            from "../utils/ApiError.js";
+import jwt from "jsonwebtoken";
+import { Resend } from "resend";
+
+import { Restaurant } from "../models/restaurant.model.js";
+import { ApiError } from "../utils/ApiError.js";
 import { sendOtp, verifyOtp, otpStore } from "../utils/sendOtp.js";
-import { uploadOnCloudinary }  from "../utils/cloudinary.js";
-import { resetPasswordTemplate } from "../utils/emailTemplates.js";
-import nodemailer from "nodemailer";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { User } from "../models/user.model.js";
 
+// ─── Resend Client ────────────────────────────────────────────────────────────
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// ─── Cookie Options ───────────────────────────────────────────────────────────
 
 const cookieOptions = {
-  httpOnly : true,
-  secure   : process.env.NODE_ENV === "production",
-  sameSite : "strict",
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
 };
 
-class AuthService {
+// ─── Auth Service ─────────────────────────────────────────────────────────────
 
+class AuthService {
+  // ─── Register ───────────────────────────────────────────────────────────────
 
   static async register(data, logoLocalPath) {
     const {
-      ownerFullName, ownerEmail, ownerPhone, ownerAddress,
-      restaurantName, restaurantEmail, restaurantPhone, restaurantAddress,
+      ownerFullName,
+      ownerEmail,
+      ownerPhone,
+      ownerAddress,
+      restaurantName,
+      restaurantEmail,
+      restaurantPhone,
+      restaurantAddress,
       password,
     } = data;
 
     const exists = await Restaurant.findOne({
-      $or: [
-        { "owner.email" : ownerEmail },
-        { email         : restaurantEmail },
-      ],
+      $or: [{ "owner.email": ownerEmail }, { email: restaurantEmail }],
     });
-    if (exists) throw new ApiError(409, "Email already registered");
+
+    if (exists) {
+      throw new ApiError(409, "Email already registered");
+    }
 
     let logoUrl = "";
+
     if (logoLocalPath) {
       const uploaded = await uploadOnCloudinary(logoLocalPath);
-      if (!uploaded?.url) throw new ApiError(500, "Logo upload failed");
+
+      if (!uploaded?.url) {
+        throw new ApiError(500, "Logo upload failed");
+      }
+
       logoUrl = uploaded.url;
     }
 
-    
     await Restaurant.create({
       owner: {
-        fullName : ownerFullName,
-        email    : ownerEmail,
-        phone    : ownerPhone,
-        address  : ownerAddress,
+        fullName: ownerFullName,
+        email: ownerEmail,
+        phone: ownerPhone,
+        address: ownerAddress,
       },
-      name    : restaurantName,
-      email   : restaurantEmail,
-      phone   : restaurantPhone,
-      address : restaurantAddress,
-      logo    : logoUrl,
+
+      name: restaurantName,
+      email: restaurantEmail,
+      phone: restaurantPhone,
+      address: restaurantAddress,
+      logo: logoUrl,
       password,
     });
 
-    return { message: "Account Created Successfully" };
+    return {
+      message: "Account Created Successfully",
+    };
   }
 
-  // ─── Send OTP — frontend se call hoga ──────────
-static async sendOtpToEmail(email) {
-  if (!email) throw new ApiError(400, "Email is required");
- 
-  await sendOtp(email);  
- 
-  return { message: "OTP sent to email" };
-}
+  // ─── Send OTP ──────────────────────────────────────────────────────────────
 
+  static async sendOtpToEmail(email) {
+    if (!email) {
+      throw new ApiError(400, "Email is required");
+    }
 
-  // ─── Verify OTP ────────────────────────────────
+    await sendOtp(email);
 
-static async verifyOtp(email, otp) {
-  if (!email || !otp) {
-    throw new ApiError(400, "Email and OTP are required");
+    return {
+      message: "OTP sent to email",
+    };
   }
 
-  // Use the utility function that checks against MongoDB
-  await verifyOtp(email, otp);
+  // ─── Verify OTP ────────────────────────────────────────────────────────────
 
-  return { message: "Email verified successfully!" };
-}
+  static async verifyOtp(email, otp) {
+    if (!email || !otp) {
+      throw new ApiError(400, "Email and OTP are required");
+    }
 
+    await verifyOtp(email, otp);
 
-  // ─── Login ─────────────────────────────────────
+    return {
+      message: "Email verified successfully!",
+    };
+  }
+
+  // ─── Login ─────────────────────────────────────────────────────────────────
 
   static async login(email, password, res) {
-  // ── 1. Try Restaurant first ───────────────────────────────────────────
-  const restaurant = await Restaurant.findOne({
-    $or: [{ "owner.email": email }, { email }],
-  });
-
-  if (restaurant) {
-    const isValid = await restaurant.isPasswordCorrect(password);
-    if (!isValid) throw new ApiError(401, "Invalid credentials");
-
-    const accessToken  = restaurant.generateAccessToken();
-    const refreshToken = restaurant.generateRefreshToken();
-
-    restaurant.refreshToken = refreshToken;
-    await restaurant.save({ validateBeforeSave: false });
-
-    res.cookie("accessToken",  accessToken,  {
-      ...cookieOptions, maxAge: 1  * 24 * 60 * 60 * 1000,
+    // 1. Try Restaurant first
+    const restaurant = await Restaurant.findOne({
+      $or: [{ "owner.email": email }, { email }],
     });
+
+    if (restaurant) {
+      const isValid = await restaurant.isPasswordCorrect(password);
+
+      if (!isValid) {
+        throw new ApiError(401, "Invalid credentials");
+      }
+
+      const accessToken = restaurant.generateAccessToken();
+      const refreshToken = restaurant.generateRefreshToken();
+
+      restaurant.refreshToken = refreshToken;
+
+      await restaurant.save({
+        validateBeforeSave: false,
+      });
+
+      res.cookie("accessToken", accessToken, {
+        ...cookieOptions,
+        maxAge: 1 * 24 * 60 * 60 * 1000,
+      });
+
+      res.cookie("refreshToken", refreshToken, {
+        ...cookieOptions,
+        maxAge: 10 * 24 * 60 * 60 * 1000,
+      });
+
+      const {
+        password: _,
+        refreshToken: __,
+        ...safeData
+      } = restaurant.toObject();
+
+      return {
+        role: "restaurant",
+        data: safeData,
+        accessToken,
+      };
+    }
+
+    // 2. Fallback → User collection
+    const user = await User.findOne({
+      email,
+    });
+
+    if (!user) {
+      throw new ApiError(404, "No account found with this email");
+    }
+
+    // Account must be active
+    if (!user.isActive) {
+      throw new ApiError(403, "Account not activated");
+    }
+
+    const isValid = await user.isPasswordCorrect(password);
+
+    if (!isValid) {
+      throw new ApiError(401, "Invalid credentials");
+    }
+
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+
+    user.refreshToken = refreshToken;
+
+    await user.save({
+      validateBeforeSave: false,
+    });
+
+    res.cookie("accessToken", accessToken, {
+      ...cookieOptions,
+      maxAge: 1 * 24 * 60 * 60 * 1000,
+    });
+
     res.cookie("refreshToken", refreshToken, {
-      ...cookieOptions, maxAge: 10 * 24 * 60 * 60 * 1000,
+      ...cookieOptions,
+      maxAge: 10 * 24 * 60 * 60 * 1000,
     });
 
-    const { password: _, refreshToken: __, ...safeData } =
-      restaurant.toObject();
+    const { password: _, refreshToken: __, ...safeData } = user.toObject();
 
-    return { role: "restaurant", data: safeData, accessToken };
+    return {
+      role: "customer",
+      data: safeData,
+      accessToken,
+    };
   }
 
-  // ── 2. Fallback → try User collection ────────────────────────────────
-  const user = await User.findOne({ email });
+  // ─── Logout ────────────────────────────────────────────────────────────────
 
-  if (!user) throw new ApiError(404, "No account found with this email");
-
-  // Extra guard: account must be active
-  if (!user.isActive) throw new ApiError(403, "Account not activated");
-
-  const isValid = await user.isPasswordCorrect(password);
-  if (!isValid) throw new ApiError(401, "Invalid credentials");
-
-  const accessToken  = user.generateAccessToken();
-  const refreshToken = user.generateRefreshToken();
-
-  user.refreshToken = refreshToken;
-  await user.save({ validateBeforeSave: false });
-
-  res.cookie("accessToken",  accessToken,  {
-    ...cookieOptions, maxAge: 1  * 24 * 60 * 60 * 1000,
-  });
-  res.cookie("refreshToken", refreshToken, {
-    ...cookieOptions, maxAge: 10 * 24 * 60 * 60 * 1000,
-  });
-
-  const { password: _, refreshToken: __, ...safeData } = user.toObject();
-
-  return { role: "customer", data: safeData, accessToken };
-}
-
-
-
-  
-  // ─── Logout ────────────────────────────────────
   static async logout(userId, res) {
     // Try Restaurant first
     let result = await Restaurant.findByIdAndUpdate(
       userId,
-      { $unset: { refreshToken: 1 } },
-      { new: true }
+      {
+        $unset: {
+          refreshToken: 1,
+        },
+      },
+      {
+        new: true,
+      },
     );
 
     // If not restaurant, try User
     if (!result) {
       result = await User.findByIdAndUpdate(
         userId,
-        { $unset: { refreshToken: 1 } },
-        { new: true }
+        {
+          $unset: {
+            refreshToken: 1,
+          },
+        },
+        {
+          new: true,
+        },
       );
     }
 
-    res.clearCookie("accessToken",  cookieOptions);
+    res.clearCookie("accessToken", cookieOptions);
+
     res.clearCookie("refreshToken", cookieOptions);
 
-    return { message: "Logged out successfully" };
+    return {
+      message: "Logged out successfully",
+    };
   }
 
-  // ─── Refresh Token ─────────────────────────────
+  // ─── Refresh Token ─────────────────────────────────────────────────────────
+
   static async refreshAccessToken(incomingRefreshToken) {
     if (!incomingRefreshToken) {
       throw new ApiError(401, "Refresh token missing");
     }
 
     let decoded;
+
     try {
       decoded = jwt.verify(
         incomingRefreshToken,
-        process.env.REFRESH_TOKEN_SECRET
+        process.env.REFRESH_TOKEN_SECRET,
       );
     } catch {
       throw new ApiError(401, "Invalid refresh token");
     }
 
     // Try Restaurant first
-    let restaurant = await Restaurant.findById(decoded._id);
+    const restaurant = await Restaurant.findById(decoded._id);
+
     if (restaurant && restaurant.refreshToken === incomingRefreshToken) {
       const accessToken = restaurant.generateAccessToken();
-      return { accessToken };
+
+      return {
+        accessToken,
+      };
     }
 
     // Try User
     const user = await User.findById(decoded._id);
+
     if (user && user.refreshToken === incomingRefreshToken) {
       const accessToken = user.generateAccessToken();
-      return { accessToken };
+
+      return {
+        accessToken,
+      };
     }
 
     throw new ApiError(401, "Refresh token expired or already used");
   }
 
-  // ─── Forgot Password ───────────────────────────
+  // ─── Forgot Password ───────────────────────────────────────────────────────
+
   static async forgotPassword(email) {
-    const restaurant = await Restaurant.findOne({ "owner.email": email });
-    if (!restaurant) throw new ApiError(404, "No account with this email");
+    const restaurant = await Restaurant.findOne({
+      "owner.email": email,
+    });
+
+    if (!restaurant) {
+      throw new ApiError(404, "No account with this email");
+    }
 
     const rawToken = restaurant.generateResetToken();
-    await restaurant.save({ validateBeforeSave: false });
+
+    await restaurant.save({
+      validateBeforeSave: false,
+    });
 
     const resetUrl = `${process.env.CLIENT_URL}/reset-password/${rawToken}`;
 
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: false,           // STARTTLS on port 587 — do NOT use SSL
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-      connectionTimeout: 10_000,
-      greetingTimeout : 10_000,
-      socketTimeout   : 10_000,
-      tls: { rejectUnauthorized: false },
-    });
-
     try {
-      await transporter.sendMail({
-        from    : `"${process.env.APP_NAME}" <${process.env.SMTP_USER}>`,
-        to      : email,
-        subject : "Password Reset Request",
-        html    : `
-          <div style="font-family:Arial,sans-serif;max-width:420px;margin:auto;
-                      padding:32px;border:1px solid #e5e7eb;border-radius:8px;">
-            <h2>Password Reset 🔐</h2>
-            <p>Hi ${restaurant.owner.fullName}, click below to reset:</p>
-            <a href="${resetUrl}"
-               style="display:inline-block;padding:12px 28px;background:#dc2626;
-                      color:#fff;border-radius:6px;text-decoration:none;
-                      font-weight:bold;margin:16px 0;">
-              Reset Password
-            </a>
-            <p style="color:#9ca3af;font-size:13px;">
-              Expires in <strong>15 minutes</strong>.<br/>
-              Ignore if you didn't request this.
-            </p>
-          </div>`,
-        text: `Hi ${restaurant.owner.fullName}, reset: ${resetUrl}`,
+      console.log("📧 Sending password reset email to:", email);
+
+      const { data, error } = await resend.emails.send({
+        from: "BiteNest <onboarding@resend.dev>",
+
+        to: [email],
+
+        subject: "Password Reset Request",
+
+        html: `
+            <div style="
+              font-family:Arial,sans-serif;
+              max-width:420px;
+              margin:auto;
+              padding:32px;
+              border:1px solid #e5e7eb;
+              border-radius:8px;
+            ">
+
+              <h2>
+                Password Reset 🔐
+              </h2>
+
+              <p>
+                Hi ${restaurant.owner.fullName},
+                click below to reset your password:
+              </p>
+
+              <a
+                href="${resetUrl}"
+                style="
+                  display:inline-block;
+                  padding:12px 28px;
+                  background:#dc2626;
+                  color:#fff;
+                  border-radius:6px;
+                  text-decoration:none;
+                  font-weight:bold;
+                  margin:16px 0;
+                "
+              >
+                Reset Password
+              </a>
+
+              <p style="
+                color:#9ca3af;
+                font-size:13px;
+              ">
+                Expires in
+                <strong>15 minutes</strong>.
+                <br/>
+                Ignore if you didn't request this.
+              </p>
+
+            </div>
+          `,
+
+        text:
+          `Hi ${restaurant.owner.fullName}, ` +
+          `reset your password here: ${resetUrl}`,
       });
-    } catch {
-      restaurant.resetPasswordToken  = null;
+
+      if (error) {
+        console.error("❌ Resend password reset error:");
+
+        console.error(error);
+
+        restaurant.resetPasswordToken = null;
+        restaurant.resetPasswordExpiry = null;
+
+        await restaurant.save({
+          validateBeforeSave: false,
+        });
+
+        throw new ApiError(500, "Reset email failed. Try again.");
+      }
+
+      console.log("✅ Password reset email sent");
+
+      console.log("📨 Resend ID:", data?.id);
+    } catch (error) {
+      console.error("❌ Password reset email error:");
+
+      console.error(error);
+
+      restaurant.resetPasswordToken = null;
       restaurant.resetPasswordExpiry = null;
-      await restaurant.save({ validateBeforeSave: false });
+
+      await restaurant.save({
+        validateBeforeSave: false,
+      });
+
+      if (error instanceof ApiError) {
+        throw error;
+      }
+
       throw new ApiError(500, "Reset email failed. Try again.");
     }
 
-    return { message: "Password reset link sent to email" };
+    return {
+      message: "Password reset link sent to email",
+    };
   }
 
-  // ─── Reset Password ────────────────────────────
+  // ─── Reset Password ────────────────────────────────────────────────────────
+
   static async resetPassword(rawToken, newPassword) {
     const hashedToken = crypto
-      .createHash("sha256").update(rawToken).digest("hex");
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
 
     const restaurant = await Restaurant.findOne({
-      resetPasswordToken  : hashedToken,
-      resetPasswordExpiry : { $gt: Date.now() },
+      resetPasswordToken: hashedToken,
+      resetPasswordExpiry: {
+        $gt: Date.now(),
+      },
     });
+
     if (!restaurant) {
       throw new ApiError(400, "Reset link invalid or expired");
     }
 
-    restaurant.password            = newPassword;
-    restaurant.resetPasswordToken  = null;
+    restaurant.password = newPassword;
+    restaurant.resetPasswordToken = null;
     restaurant.resetPasswordExpiry = null;
-    restaurant.refreshToken        = null;
+    restaurant.refreshToken = null;
+
     await restaurant.save();
 
-    return { message: "Password reset successful! Please login again." };
+    return {
+      message: "Password reset successful! Please login again.",
+    };
   }
+
+  // ─── Get Profile ───────────────────────────────────────────────────────────
 
   static async getProfile(restaurantId, userId) {
+    // Restaurant profile
+    if (restaurantId) {
+      const restaurant = await Restaurant.findById(restaurantId).select(
+        "-password -refreshToken",
+      );
 
-   
-  // ── 1. Restaurant profile ─────────────────────────────────────────────
-  if (restaurantId) { 
-    const restaurant = await Restaurant.findById(restaurantId).select(
-      "-password -refreshToken"
-    );
-    if (!restaurant) throw new ApiError(404, "Restaurant not found");
-    return { role: "restaurant", data: restaurant };
+      if (!restaurant) {
+        throw new ApiError(404, "Restaurant not found");
+      }
+
+      return {
+        role: "restaurant",
+        data: restaurant,
+      };
+    }
+
+    // Customer profile
+    if (userId) {
+      const user = await User.findById(userId)
+        .select("-password -refreshToken")
+        .populate({
+          path: "orders",
+          populate: [
+            {
+              path: "userId",
+              select: "name email phone",
+            },
+            {
+              path: "paymentId",
+            },
+          ],
+        })
+        .populate({
+          path: "cart.menuItemId",
+        })
+        .populate({
+          path: "wishlist",
+        });
+
+      if (!user) {
+        throw new ApiError(404, "User not found");
+      }
+
+      return {
+        role: "customer",
+        data: user,
+      };
+    }
+
+    throw new ApiError(401, "Unauthorized");
   }
 
-  // ── 2. Customer profile ───────────────────────────────────────────────
-  if (userId) {
-    const user = await User.findById(userId)
-      .select("-password -refreshToken")
-      .populate({
-        path: "orders",
-        populate: [
-          { path: "userId", select: "name email phone" },
-          { path: "paymentId" }
-        ]
-      })
-      .populate({
-        path: "cart.menuItemId",  
-      })
-      .populate({
-        path: "wishlist",  
-      });
-      
-    if (!user) throw new ApiError(404, "User not found");
-    return { role: "customer", data: user };
-}
+  // ─── Update Restaurant Profile ─────────────────────────────────────────────
 
-  throw new ApiError(401, "Unauthorized");
-}
-
-  // ── Update Restaurant Profile ─────────────────────────────────────────────
   static async updateProfile(restaurantId, data, logoLocalPath) {
     const restaurant = await Restaurant.findById(restaurantId);
-    if (!restaurant) throw new ApiError(404, "Restaurant not found");
 
-    const { ownerFullName, ownerPhone, ownerAddress, restaurantName, restaurantPhone, restaurantAddress } = data;
+    if (!restaurant) {
+      throw new ApiError(404, "Restaurant not found");
+    }
 
-    if (ownerFullName)        restaurant.owner.fullName = ownerFullName.trim();
-    if (ownerPhone)           restaurant.owner.phone    = ownerPhone.trim();
-    if (ownerAddress)         restaurant.owner.address  = ownerAddress.trim();
-    if (restaurantName)       restaurant.name           = restaurantName.trim();
-    if (restaurantPhone)      restaurant.phone          = restaurantPhone.trim();
-    if (restaurantAddress)    restaurant.address        = restaurantAddress.trim();
+    const {
+      ownerFullName,
+      ownerPhone,
+      ownerAddress,
+      restaurantName,
+      restaurantPhone,
+      restaurantAddress,
+    } = data;
+
+    if (ownerFullName) {
+      restaurant.owner.fullName = ownerFullName.trim();
+    }
+
+    if (ownerPhone) {
+      restaurant.owner.phone = ownerPhone.trim();
+    }
+
+    if (ownerAddress) {
+      restaurant.owner.address = ownerAddress.trim();
+    }
+
+    if (restaurantName) {
+      restaurant.name = restaurantName.trim();
+    }
+
+    if (restaurantPhone) {
+      restaurant.phone = restaurantPhone.trim();
+    }
+
+    if (restaurantAddress) {
+      restaurant.address = restaurantAddress.trim();
+    }
 
     if (logoLocalPath) {
       const uploaded = await uploadOnCloudinary(logoLocalPath);
-      if (uploaded?.secure_url) restaurant.logo = uploaded.secure_url;
+
+      if (uploaded?.secure_url) {
+        restaurant.logo = uploaded.secure_url;
+      }
     }
 
-    await restaurant.save({ validateBeforeSave: false });
-    const updated = await Restaurant.findById(restaurantId).select("-password -refreshToken");
+    await restaurant.save({
+      validateBeforeSave: false,
+    });
+
+    const updated = await Restaurant.findById(restaurantId).select(
+      "-password -refreshToken",
+    );
+
     return updated;
   }
 
-  // ── Change Password ───────────────────────────────────────────────────────
+  // ─── Change Password ───────────────────────────────────────────────────────
+
   static async changePassword(restaurantId, currentPassword, newPassword) {
     const restaurant = await Restaurant.findById(restaurantId);
-    if (!restaurant) throw new ApiError(404, "Restaurant not found");
+
+    if (!restaurant) {
+      throw new ApiError(404, "Restaurant not found");
+    }
 
     const isMatch = await restaurant.isPasswordCorrect(currentPassword);
-    if (!isMatch) throw new ApiError(400, "Current password is incorrect");
 
-    if (newPassword.length < 6) throw new ApiError(400, "New password must be at least 6 characters");
+    if (!isMatch) {
+      throw new ApiError(400, "Current password is incorrect");
+    }
+
+    if (newPassword.length < 6) {
+      throw new ApiError(400, "New password must be at least 6 characters");
+    }
 
     restaurant.password = newPassword;
+
     await restaurant.save();
-    return { message: "Password changed successfully" };
+
+    return {
+      message: "Password changed successfully",
+    };
   }
 }
 
