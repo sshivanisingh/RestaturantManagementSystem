@@ -1,7 +1,6 @@
-import { Router }         from "express";
-import { verifyJWT }      from "../middleware/auth.middleware.js";       
- 
-import express            from "express";
+import express, { Router } from "express";
+import { verifyJWT } from "../middleware/auth.middleware.js";
+
 import {
   createOrder,
   initiateRazorpayPayment,
@@ -15,42 +14,46 @@ import {
 
 const router = Router();
 
-// ─── Webhook — raw body is required, JSON should NOT be parsed ─────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// RAZORPAY WEBHOOK
+// ═════════════════════════════════════════════════════════════════════════════
+// IMPORTANT: This route must receive the raw request body for Razorpay
+// signature verification. Do not put express.json() specifically on this route.
 
 router.post(
   "/webhook/razorpay",
   express.raw({ type: "application/json" }),
-  razorpayWebhook
+  razorpayWebhook,
 );
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  PUBLIC ROUTES — Guests can also place orders
+// PUBLIC ROUTES
+// Guests can place orders without logging in.
 // ═════════════════════════════════════════════════════════════════════════════
 
-// Step 1 — Create order (items + delivery information)
- 
-
-// Step 2A — Initiate Razorpay payment (returns Razorpay order ID)
-router.post("/:orderId/initiate-payment", initiateRazorpayPayment);
-
-
-// Step 2B — Verify payment (after Razorpay callback)
-router.post("/verify-payment", verifyRazorpayPayment);
-
-// Step 2C — Confirm Cash on Delivery (COD) order
-router.post("/:orderId/cod-confirm", confirmCODOrder);
-
+// Create a new order
 router.post("/", createOrder);
 
-// ═════════════════════════════════════════════════════════════════════════════
-//  PROTECTED — Customer routes
-// ═════════════════════════════════════════════════════════════════════════════
-router.get("/detail/:orderId", verifyJWT, getOrderById);
+// Initiate Razorpay payment for an existing order
+router.post("/:orderId/initiate-payment", initiateRazorpayPayment);
+
+// Verify Razorpay payment
+router.post("/verify-payment", verifyRazorpayPayment);
+
+// Confirm Cash on Delivery order
+router.post("/:orderId/cod-confirm", confirmCODOrder);
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  PROTECTED — Admin (Restaurant) routes
+// PROTECTED ROUTES
 // ═════════════════════════════════════════════════════════════════════════════
+
+// Get a specific order
+router.get("/detail/:orderId", verifyJWT, getOrderById);
+
+// Admin: get all restaurant orders
 router.get("/", verifyJWT, getAllOrders);
+
+// Admin: update order status
 router.patch("/:orderId/status", verifyJWT, updateOrderStatus);
 
 export default router;
