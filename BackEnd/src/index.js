@@ -235,8 +235,12 @@ process.on("uncaughtException", (err) => {
       logger.info(
         `🚀  Server running in [${process.env.NODE_ENV}] mode on port ${PORT}`,
       );
-      logger.info(`📡  API base URL : http://localhost:${PORT}${API_V1}`);
-      logger.info(`❤️   Health check : http://localhost:${PORT}/health`);
+      logger.info(
+        `📡 API base URL : ${process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`}${API_V1}`,
+      );
+      logger.info(
+        `❤️ Health check : ${process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`}/health`,
+      );
     });
   } catch (err) {
     logger.error(`❌  Failed to start server: ${err.message || err}`);
