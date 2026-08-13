@@ -51,7 +51,7 @@ interface StepInfo {
 }
 
 // ── Maps loader ────────────────────────────────────────────────────
-const KEY = process.env.GOOGLE_MAPS_API_KEY ?? "";
+const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? "";
 let loadPromise: Promise<void> | null = null;
 
 function loadGMaps(): Promise<void> {
