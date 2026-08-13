@@ -18,8 +18,8 @@ const NAV_LINKS = [
   { label: "Home", href: "/resturent" },
   { label: "Reservations", href: "/userreservation" },
   { label: "Items", href: "/items" },
-  { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
+  // { label: "About", href: "/about" },
+  // { label: "Contact", href: "/contact" },
 ];
 
 export default function Navbar() {
