@@ -44,21 +44,12 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* ── Logo ──────────────────────────────────────────────────────── */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shadow-sm">
-              <img
-                src="/logo.png"
-                alt="BiteNest"
-                className="w-full h-full object-contain"
-              />
-            </div>
-
-            <span
-              className="text-xl font-satisfy tracking-wide"
-              style={{ color: "hsl(var(--brand-primary))" }}
-            >
-              BiteNest
-            </span>
+          <Link href="/" className="flex items-center shrink-0">
+            <img
+              src="/logo.png"
+              alt="BiteNest"
+              className="h-12 w-auto object-contain"
+            />
           </Link>
 
           {/* ── Desktop nav links ──────────────────────────────────────────── */}
