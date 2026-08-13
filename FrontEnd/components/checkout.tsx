@@ -198,7 +198,7 @@ function CheckoutInner() {
           name: `${form.firstName} ${form.lastName}`.trim(),
           email: form.email,
           phone: form.phone,
-          street: form.address,
+          address: form.address,
           city: form.city,
           pincode: form.zipCode,
           type: "delivery",

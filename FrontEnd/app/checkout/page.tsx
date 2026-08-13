@@ -195,7 +195,7 @@ function CheckoutInner() {
           phone: form.phone,
 
           // IMPORTANT: backend expects "address", NOT "street"
-          street: form.address,
+          address: form.address,
 
           city: form.city,
           pincode: form.zipCode,
