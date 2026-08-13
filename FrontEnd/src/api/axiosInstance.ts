@@ -24,9 +24,11 @@ api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const url = config.url ?? "";
     const isDeliveryRoute = url.includes("/delivery");
-    const token = isDeliveryRoute
-      ? localStorage.getItem("db_accessToken")
-      : localStorage.getItem("accessToken");
+
+    const deliveryToken = localStorage.getItem("db_accessToken");
+    const accessToken = localStorage.getItem("accessToken");
+
+    const token = isDeliveryRoute ? deliveryToken || accessToken : accessToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
