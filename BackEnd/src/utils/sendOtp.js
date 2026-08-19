@@ -1,10 +1,6 @@
-import { Resend } from "resend";
 import { ApiError } from "./ApiError.js";
 import { OTP } from "../models/otp.model.js";
-
-// ─── Resend Client ────────────────────────────────────────────────────────────
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "./sendEmail.js";
 
 // ─── OTP Generator ────────────────────────────────────────────────────────────
 
@@ -12,7 +8,8 @@ export const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Legacy in-memory store
+// ─── Legacy in-memory store ───────────────────────────────────────────────────
+
 export const otpStore = new Map();
 
 // ─── Send OTP ─────────────────────────────────────────────────────────────────
@@ -26,23 +23,27 @@ export const sendOtp = async (email, name = "User") => {
   const otp = generateOtp();
 
   try {
-    // ─────────────────────────────────────────────────────────────────────────
-    // Check Resend configuration
-    // ─────────────────────────────────────────────────────────────────────────
-
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("📧 OTP EMAIL REQUEST");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("📩 To:", normalizedEmail);
-    console.log(
-      "🔐 Resend API key loaded:",
-      Boolean(process.env.RESEND_API_KEY),
-    );
 
-    if (!process.env.RESEND_API_KEY) {
-      console.error("❌ RESEND_API_KEY is missing");
+    // ─────────────────────────────────────────────────────────────────────────
+    // Check SMTP configuration
+    // ─────────────────────────────────────────────────────────────────────────
+
+    if (
+      !process.env.SMTP_HOST ||
+      !process.env.SMTP_PORT ||
+      !process.env.SMTP_USER ||
+      !process.env.SMTP_PASS
+    ) {
+      console.error("❌ SMTP configuration is missing");
+
       throw new ApiError(500, "Email service is not configured");
     }
+
+    console.log("🔐 SMTP configuration loaded");
 
     // ─────────────────────────────────────────────────────────────────────────
     // Remove previous OTP
@@ -64,13 +65,11 @@ export const sendOtp = async (email, name = "User") => {
     console.log("💾 OTP saved to MongoDB");
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Send email through Resend
+    // Send OTP through Gmail SMTP
     // ─────────────────────────────────────────────────────────────────────────
 
-    const { data, error } = await resend.emails.send({
-      from: "BiteNest <onboarding@resend.dev>",
-
-      to: [normalizedEmail],
+    await sendEmail({
+      to: normalizedEmail,
 
       subject: `${otp} — BiteNest Email Verification OTP`,
 
@@ -155,35 +154,11 @@ export const sendOtp = async (email, name = "User") => {
     });
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Handle Resend error
-    // ─────────────────────────────────────────────────────────────────────────
-
-    if (error) {
-      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      console.error("❌ RESEND EMAIL ERROR");
-      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      console.error("Name:", error.name);
-      console.error("Message:", error.message);
-      console.error("Status:", error.statusCode);
-      console.error("Full error:", JSON.stringify(error, null, 2));
-
-      // Delete OTP because email wasn't sent
-      await OTP.deleteMany({
-        email: normalizedEmail,
-      }).catch((cleanupError) => {
-        console.error("❌ OTP cleanup failed:", cleanupError.message);
-      });
-
-      throw new ApiError(500, error.message || "Failed to send OTP");
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // Success
     // ─────────────────────────────────────────────────────────────────────────
 
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("✅ OTP EMAIL SENT SUCCESSFULLY");
-    console.log("📨 Resend ID:", data?.id);
     console.log("📩 Recipient:", normalizedEmail);
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
@@ -197,17 +172,16 @@ export const sendOtp = async (email, name = "User") => {
     console.error(error);
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-    // Do not duplicate ApiError
-    if (error instanceof ApiError) {
-      throw error;
-    }
-
-    // Remove OTP if something unexpected failed
+    // Remove OTP if email sending failed
     await OTP.deleteMany({
       email: normalizedEmail,
     }).catch((cleanupError) => {
       console.error("❌ OTP cleanup failed:", cleanupError.message);
     });
+
+    if (error instanceof ApiError) {
+      throw error;
+    }
 
     throw new ApiError(
       500,

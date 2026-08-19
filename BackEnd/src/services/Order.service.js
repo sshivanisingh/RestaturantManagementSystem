@@ -18,7 +18,7 @@ const razorpay = new Razorpay({
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// TEMP PASSWORD
+// TEMPORARY PASSWORD
 // ═════════════════════════════════════════════════════════════════════════════
 
 const generateTempPassword = () => {
@@ -31,211 +31,397 @@ const generateTempPassword = () => {
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
-// WELCOME EMAIL
+// ORDER CONFIRMATION EMAIL — NEW USER
 // ═════════════════════════════════════════════════════════════════════════════
 
-const welcomeEmailTemplate = ({
+const newUserOrderEmailTemplate = ({
   name,
   email,
   tempPassword,
   loginUrl,
   orderId,
+  total,
+  paymentMethod,
 }) => `
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
 
   <style>
     body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f9fafb;
       margin: 0;
       padding: 0;
+      background: #f5f5f5;
+      font-family: Arial, Helvetica, sans-serif;
     }
 
-    .wrap {
+    .container {
       max-width: 560px;
       margin: 40px auto;
-      background: #fff;
-      border-radius: 16px;
+      background: #ffffff;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+      border: 1px solid #e5e7eb;
     }
 
-    .hdr {
-      background: linear-gradient(135deg,#f97316,#ec4899);
-      padding: 36px 32px;
+    .header {
+      background: linear-gradient(135deg, #f97316, #ec4899);
+      padding: 35px 25px;
       text-align: center;
     }
 
-    .hdr h1 {
-      color: #fff;
+    .header h1 {
       margin: 0;
+      color: #ffffff;
       font-size: 26px;
     }
 
-    .hdr p {
-      color: rgba(255,255,255,.85);
+    .header p {
+      color: #ffffff;
+      opacity: 0.9;
       margin: 8px 0 0;
       font-size: 14px;
     }
 
-    .body {
+    .content {
       padding: 32px;
     }
 
-    .body h2 {
+    .content h2 {
       color: #111827;
-      font-size: 20px;
-      margin: 0 0 8px;
+      margin-top: 0;
     }
 
-    .body p {
+    .content p {
       color: #6b7280;
-      font-size: 15px;
       line-height: 1.6;
-      margin: 0 0 16px;
-    }
-
-    .creds {
-      background: #f3f4f6;
-      border-radius: 10px;
-      padding: 18px 20px;
-      margin: 20px 0;
-    }
-
-    .creds p {
-      margin: 4px 0;
-      color: #374151;
-      font-size: 14px;
-    }
-
-    .creds strong {
-      color: #111827;
-    }
-
-    .btn {
-      display: inline-block;
-      padding: 14px 32px;
-      background: linear-gradient(135deg,#f97316,#ec4899);
-      color: #fff;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 600;
       font-size: 15px;
-      margin: 8px 0;
     }
 
-    .order {
+    .order-box {
       background: #fff7ed;
       border: 1px solid #fed7aa;
       border-radius: 10px;
-      padding: 14px 20px;
-      margin: 20px 0;
+      padding: 18px;
+      margin: 22px 0;
     }
 
-    .order p {
-      margin: 3px 0;
+    .order-box p {
+      margin: 7px 0;
       color: #92400e;
-      font-size: 14px;
+    }
+
+    .account-box {
+      background: #f3f4f6;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 22px 0;
+    }
+
+    .account-box h3 {
+      margin-top: 0;
+      color: #111827;
+    }
+
+    .account-box p {
+      margin: 8px 0;
+      color: #374151;
+    }
+
+    .password {
+      display: inline-block;
+      background: #e5e7eb;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-weight: bold;
+      color: #111827;
+    }
+
+    .button {
+      display: inline-block;
+      background: linear-gradient(135deg, #f97316, #ec4899);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 13px 28px;
+      border-radius: 7px;
+      font-weight: bold;
+      margin: 15px 0;
     }
 
     .footer {
       background: #f9fafb;
-      padding: 20px 32px;
+      border-top: 1px solid #e5e7eb;
+      padding: 20px;
       text-align: center;
-      border-top: 1px solid #f3f4f6;
     }
 
     .footer p {
+      margin: 0;
       color: #9ca3af;
       font-size: 12px;
-      margin: 0;
     }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
 
-    <div class="hdr">
+  <div class="container">
+
+    <div class="header">
       <h1>🎉 Order Confirmed!</h1>
-      <p>Your account is ready — you can login right now</p>
+      <p>Welcome to BiteNest</p>
     </div>
 
-    <div class="body">
+    <div class="content">
 
-      <h2>Hi ${name}! 👋</h2>
+      <h2>Hello ${name}! 👋</h2>
 
       <p>
-        Thank you for your order. We've automatically created
-        an account so you can track orders, reorder easily,
-        and save your favourites.
+        Thank you for placing your order with BiteNest.
+        Your order has been successfully confirmed.
       </p>
 
-      <div class="order">
+      <div class="order-box">
+
         <p>
-          📦 <strong>Order ID:</strong> ${orderId}
+          <strong>Order ID:</strong>
+          ${orderId}
         </p>
 
         <p>
-          Your order is confirmed and being prepared.
-          Track it from your account.
-        </p>
-      </div>
-
-      <div class="creds">
-
-        <p>
-          🔑 <strong>Your Login Credentials</strong>
+          <strong>Total Amount:</strong>
+          ₹${Number(total || 0).toFixed(2)}
         </p>
 
         <p>
-          <strong>Email:</strong> ${email}
+          <strong>Payment Method:</strong>
+          ${paymentMethod || "COD"}
         </p>
 
         <p>
-          <strong>Password:</strong>
-          <code style="
-            background:#e5e7eb;
-            padding:2px 6px;
-            border-radius:4px
-          ">
-            ${tempPassword}
-          </code>
+          Your order is now being prepared.
         </p>
 
       </div>
 
       <p>
-        You can <strong>login right away</strong> —
-        no activation required.
+        We have also created a BiteNest account for you automatically.
+        You can use your account to track your orders, view your order
+        history, and reorder your favorite food.
       </p>
 
-      <a href="${loginUrl}" class="btn">
-        Login &amp; Track Order →
-      </a>
+      <div class="account-box">
 
-      <p style="
-        font-size:13px;
-        color:#9ca3af;
-        margin-top:16px
-      ">
-        Please change your password after first login.
-        Ignore this email if you did not place this order.
+        <h3>🔐 Your BiteNest Account</h3>
+
+        <p>
+          <strong>Email:</strong>
+          ${email}
+        </p>
+
+        <p>
+          <strong>Temporary Password:</strong>
+          <span class="password">${tempPassword}</span>
+        </p>
+
+      </div>
+
+      <p>
+        You can log in immediately using the credentials above.
+        We strongly recommend changing your password after your first login.
+      </p>
+
+      <div style="text-align:center;">
+
+        <a href="${loginUrl}" class="button">
+          Login to BiteNest
+        </a>
+
+      </div>
+
+      <p style="font-size:13px;color:#9ca3af;">
+        If you did not place this order, please contact BiteNest support
+        immediately.
       </p>
 
     </div>
 
     <div class="footer">
       <p>
-        © ${new Date().getFullYear()}
-        BiteNest · Sent because you placed an order.
+        © ${new Date().getFullYear()} BiteNest. All rights reserved.
       </p>
     </div>
 
   </div>
+
+</body>
+</html>
+`;
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ORDER CONFIRMATION EMAIL — EXISTING USER
+// ═════════════════════════════════════════════════════════════════════════════
+
+const existingUserOrderEmailTemplate = ({
+  name,
+  orderId,
+  total,
+  paymentMethod,
+  loginUrl,
+}) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .container {
+      max-width: 560px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #f97316, #ec4899);
+      padding: 35px 25px;
+      text-align: center;
+    }
+
+    .header h1 {
+      margin: 0;
+      color: #ffffff;
+      font-size: 26px;
+    }
+
+    .content {
+      padding: 32px;
+    }
+
+    .content h2 {
+      color: #111827;
+      margin-top: 0;
+    }
+
+    .content p {
+      color: #6b7280;
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .order-box {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 10px;
+      padding: 18px;
+      margin: 22px 0;
+    }
+
+    .order-box p {
+      margin: 7px 0;
+      color: #92400e;
+    }
+
+    .button {
+      display: inline-block;
+      background: linear-gradient(135deg, #f97316, #ec4899);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 13px 28px;
+      border-radius: 7px;
+      font-weight: bold;
+      margin: 15px 0;
+    }
+
+    .footer {
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .footer p {
+      margin: 0;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div class="header">
+      <h1>🎉 Order Confirmed!</h1>
+    </div>
+
+    <div class="content">
+
+      <h2>Hello ${name}! 👋</h2>
+
+      <p>
+        Thank you for ordering from BiteNest.
+        Your order has been successfully confirmed.
+      </p>
+
+      <div class="order-box">
+
+        <p>
+          <strong>Order ID:</strong>
+          ${orderId}
+        </p>
+
+        <p>
+          <strong>Total Amount:</strong>
+          ₹${Number(total || 0).toFixed(2)}
+        </p>
+
+        <p>
+          <strong>Payment Method:</strong>
+          ${paymentMethod || "COD"}
+        </p>
+
+        <p>
+          Your order is now being prepared.
+        </p>
+
+      </div>
+
+      <p>
+        You can track your order and view your order history from
+        your BiteNest account.
+      </p>
+
+      <div style="text-align:center;">
+
+        <a href="${loginUrl}" class="button">
+          View My Orders
+        </a>
+
+      </div>
+
+    </div>
+
+    <div class="footer">
+      <p>
+        © ${new Date().getFullYear()} BiteNest. All rights reserved.
+      </p>
+    </div>
+
+  </div>
+
 </body>
 </html>
 `;
@@ -260,17 +446,9 @@ class OrderService {
       customerLocation,
     } = orderData;
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Validate cart
-    // ─────────────────────────────────────────────────────────────────────
-
     if (!Array.isArray(items) || items.length === 0) {
       throw new ApiError(400, "Cart is empty");
     }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Validate delivery information
-    // ─────────────────────────────────────────────────────────────────────
 
     if (!deliveryInfo) {
       throw new ApiError(400, "Delivery information is required");
@@ -296,15 +474,6 @@ class OrderService {
       throw new ApiError(400, "Delivery pincode is required");
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Get menu item IDs
-    //
-    // Supports:
-    // item.menuItemId
-    // item.id
-    // item._id
-    // ─────────────────────────────────────────────────────────────────────
-
     const menuItemIds = items.map((item) => {
       const id = item.menuItemId || item.id || item._id;
 
@@ -315,15 +484,10 @@ class OrderService {
       return id.toString();
     });
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Fetch active menu items
-    // ─────────────────────────────────────────────────────────────────────
-
     const dbItems = await MenuItem.find({
       _id: {
         $in: menuItemIds,
       },
-
       isActive: true,
     });
 
@@ -333,10 +497,6 @@ class OrderService {
         "No valid menu items found. Please refresh your cart.",
       );
     }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Verify every item
-    // ─────────────────────────────────────────────────────────────────────
 
     const verifiedItems = items.map((reqItem) => {
       const requestedId = (
@@ -349,7 +509,6 @@ class OrderService {
         (item) => item._id.toString() === requestedId,
       );
 
-      // IMPORTANT FIX
       if (!dbItem) {
         throw new ApiError(
           400,
@@ -371,20 +530,12 @@ class OrderService {
 
       return {
         menuItemId: dbItem._id,
-
         name: dbItem.name,
-
         image: dbItem.image || "",
-
         price,
-
         quantity,
       };
     });
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Pricing
-    // ─────────────────────────────────────────────────────────────────────
 
     const subtotal = verifiedItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -408,10 +559,6 @@ class OrderService {
       total,
     };
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Create order
-    // ─────────────────────────────────────────────────────────────────────
-
     const order = await Order.create({
       items: verifiedItems,
 
@@ -420,7 +567,7 @@ class OrderService {
 
         phone: deliveryInfo.phone.trim(),
 
-        email: deliveryInfo.email?.trim() || null,
+        email: deliveryInfo.email?.trim().toLowerCase() || null,
 
         address: deliveryInfo.address.trim(),
 
@@ -573,10 +720,6 @@ class OrderService {
       );
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Idempotency
-    // ─────────────────────────────────────────────────────────────────────
-
     const existingPayment = await Payment.findById(paymentId);
 
     if (existingPayment?.status === "paid") {
@@ -587,10 +730,6 @@ class OrderService {
         payment: existingPayment,
       };
     }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Update payment
-    // ─────────────────────────────────────────────────────────────────────
 
     const payment = await Payment.findByIdAndUpdate(
       paymentId,
@@ -620,10 +759,6 @@ class OrderService {
       throw new ApiError(404, "Payment record not found");
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Confirm order
-    // ─────────────────────────────────────────────────────────────────────
-
     const order = await Order.findByIdAndUpdate(
       payment.orderId,
 
@@ -633,7 +768,6 @@ class OrderService {
         $push: {
           statusHistory: {
             status: "confirmed",
-
             note: "Razorpay payment verified",
           },
         },
@@ -648,6 +782,7 @@ class OrderService {
       throw new ApiError(404, "Order not found");
     }
 
+    // Create/link account and send email
     if (order.deliveryInfo?.email) {
       await OrderService._handleUserAccount(order);
     }
@@ -673,7 +808,6 @@ class OrderService {
       throw new ApiError(400, "Cancelled order cannot be confirmed");
     }
 
-    // Prevent duplicate payment
     if (order.paymentId) {
       const existingPayment = await Payment.findById(order.paymentId);
 
@@ -716,7 +850,6 @@ class OrderService {
         $push: {
           statusHistory: {
             status: "confirmed",
-
             note: "COD order confirmed",
           },
         },
@@ -731,6 +864,7 @@ class OrderService {
       throw new ApiError(404, "Order not found after confirmation");
     }
 
+    // Create/link account and send email
     if (updatedOrder.deliveryInfo?.email) {
       await OrderService._handleUserAccount(updatedOrder);
     }
@@ -848,11 +982,8 @@ class OrderService {
 
     return {
       orders,
-
       total,
-
       page: pageNumber,
-
       totalPages: Math.ceil(total / limitNumber),
     };
   }
@@ -908,9 +1039,9 @@ class OrderService {
 
     const event = JSON.parse(rawBody);
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Payment captured
-    // ─────────────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PAYMENT CAPTURED
+    // ═══════════════════════════════════════════════════════════════════════════
 
     if (event.event === "payment.captured") {
       const rp = event.payload?.payment?.entity;
@@ -962,9 +1093,9 @@ class OrderService {
       }
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Payment failed
-    // ─────────────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PAYMENT FAILED
+    // ═══════════════════════════════════════════════════════════════════════════
 
     if (event.event === "payment.failed") {
       const rp = event.payload?.payment?.entity;
@@ -1006,23 +1137,33 @@ class OrderService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // AUTO CREATE / LINK USER
+  // CREATE / LINK USER + SEND EMAIL
   // ═══════════════════════════════════════════════════════════════════════════
 
   static async _handleUserAccount(order) {
     const { name, email, phone } = order.deliveryInfo;
 
     if (!email) {
+      console.log("⚠️ No customer email found. Account/email skipped.");
+
       return;
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const loginUrl = `${process.env.CLIENT_URL || "http://localhost:3000"}/login`;
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // CHECK EXISTING USER
+    // ═════════════════════════════════════════════════════════════════════════
+
     const existingUser = await User.findOne({
-      email,
+      email: normalizedEmail,
     });
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Existing user
-    // ─────────────────────────────────────────────────────────────────────
+    // ═════════════════════════════════════════════════════════════════════════
+    // EXISTING USER
+    // ═════════════════════════════════════════════════════════════════════════
 
     if (existingUser) {
       await User.findByIdAndUpdate(
@@ -1045,12 +1186,61 @@ class OrderService {
         },
       );
 
+      console.log("👤 Existing user found:", normalizedEmail);
+
+      // Send order confirmation email
+      try {
+        await sendEmail({
+          to: normalizedEmail,
+
+          subject: `🎉 Order Confirmed — ${order.orderId}`,
+
+          html: existingUserOrderEmailTemplate({
+            name: existingUser.name || name || "Customer",
+
+            orderId: order.orderId || order._id,
+
+            total: order.pricing?.total,
+
+            paymentMethod: order.paymentMethod,
+
+            loginUrl,
+          }),
+
+          text: `
+Hello ${existingUser.name || name || "Customer"},
+
+Thank you for ordering from BiteNest.
+
+Your order has been successfully confirmed.
+
+Order ID: ${order.orderId || order._id}
+Total Amount: ₹${Number(order.pricing?.total || 0).toFixed(2)}
+Payment Method: ${order.paymentMethod || "COD"}
+
+You can view your order and track its status from your BiteNest account.
+
+Login:
+${loginUrl}
+
+Thank you for choosing BiteNest.
+          `.trim(),
+        });
+
+        console.log(
+          "✅ Existing user order confirmation email sent:",
+          normalizedEmail,
+        );
+      } catch (emailError) {
+        console.error("❌ Existing user order email failed:", emailError);
+      }
+
       return;
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Create new user
-    // ─────────────────────────────────────────────────────────────────────
+    // ═════════════════════════════════════════════════════════════════════════
+    // CREATE NEW USER
+    // ═════════════════════════════════════════════════════════════════════════
 
     const tempPassword = generateTempPassword();
 
@@ -1058,27 +1248,29 @@ class OrderService {
 
     try {
       newUser = new User({
-        restaurantId: order.restaurantId || null,
+        name: name?.trim() || "Customer",
 
-        name,
+        email: normalizedEmail,
 
-        email,
-
-        phone: phone || null,
+        phone: phone?.trim() || "",
 
         password: tempPassword,
 
         isActive: true,
 
+        isEmailVerified: true,
+
         orders: [order._id],
       });
 
       await newUser.save();
+
+      console.log("✅ New customer account created:", normalizedEmail);
     } catch (err) {
-      // Duplicate email
+      // Handle duplicate email race condition
       if (err.code === 11000) {
         const raceUser = await User.findOne({
-          email,
+          email: normalizedEmail,
         });
 
         if (raceUser) {
@@ -1101,17 +1293,24 @@ class OrderService {
               isGuestOrder: false,
             },
           );
-        }
 
-        return;
+          console.log(
+            "👤 Existing user found after duplicate-email race:",
+            normalizedEmail,
+          );
+
+          return;
+        }
       }
+
+      console.error("❌ User creation failed:", err);
 
       throw err;
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Link user to order
-    // ─────────────────────────────────────────────────────────────────────
+    // ═════════════════════════════════════════════════════════════════════════
+    // LINK USER TO ORDER
+    // ═════════════════════════════════════════════════════════════════════════
 
     await Order.findByIdAndUpdate(
       order._id,
@@ -1123,31 +1322,66 @@ class OrderService {
       },
     );
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Send email
-    // ─────────────────────────────────────────────────────────────────────
-
-    const loginUrl = `${process.env.CLIENT_URL}/login`;
+    // ═════════════════════════════════════════════════════════════════════════
+    // SEND NEW ACCOUNT + ORDER CONFIRMATION EMAIL
+    // ═════════════════════════════════════════════════════════════════════════
 
     try {
       await sendEmail({
-        to: email,
+        to: normalizedEmail,
 
-        subject: `🎉 Order Confirmed & Your Account is Ready — ${order.orderId}`,
+        subject: `🎉 Order Confirmed & Your BiteNest Account is Ready — ${order.orderId}`,
 
-        html: welcomeEmailTemplate({
-          name,
-          email,
+        html: newUserOrderEmailTemplate({
+          name: name || "Customer",
+
+          email: normalizedEmail,
+
           tempPassword,
+
           loginUrl,
-          orderId: order.orderId,
+
+          orderId: order.orderId || order._id,
+
+          total: order.pricing?.total,
+
+          paymentMethod: order.paymentMethod,
         }),
 
-        text: `Hi ${name}, Order ${order.orderId} confirmed. Login: ${email} / ${tempPassword}. Login here: ${loginUrl}`,
+        text: `
+Hello ${name || "Customer"},
+
+Thank you for ordering from BiteNest.
+
+Your order has been successfully confirmed.
+
+Order ID: ${order.orderId || order._id}
+Total Amount: ₹${Number(order.pricing?.total || 0).toFixed(2)}
+Payment Method: ${order.paymentMethod || "COD"}
+
+We have automatically created a BiteNest account for you.
+
+Login details:
+
+Email: ${normalizedEmail}
+Temporary Password: ${tempPassword}
+
+Login here:
+${loginUrl}
+
+Please change your password after your first login.
+
+Thank you for choosing BiteNest.
+        `.trim(),
       });
+
+      console.log(
+        "✅ New user account + order confirmation email sent:",
+        normalizedEmail,
+      );
     } catch (emailError) {
-      // Do NOT fail the order if email fails
-      console.error("Welcome email failed:", emailError);
+      // Email failure must NOT cancel the order
+      console.error("❌ New user welcome/order email failed:", emailError);
     }
   }
 }

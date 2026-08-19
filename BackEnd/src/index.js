@@ -60,20 +60,41 @@ app.use(
 // 2. CORS — whitelist only allowed origins
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN ?? "")
   .split(",")
-  .map((o) => o.trim())
+  .map((origin) => origin.trim())
   .filter(Boolean);
 
 app.use(
   cors({
-    origin(origin, cb) {
-      // Allow server-to-server / Postman in development
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-      cb(new ApiError(403, `CORS policy: origin '${origin}' not allowed`));
+    origin: (origin, callback) => {
+      // Allow requests without an Origin header
+      // (Postman, server-to-server requests, etc.)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (ALLOWED_ORIGINS.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.error(`❌ CORS blocked origin: ${origin}`);
+      console.error(`✅ Allowed origins: ${ALLOWED_ORIGINS.join(", ")}`);
+
+      return callback(null, false);
     },
+
     credentials: true,
+
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+    ],
+
     exposedHeaders: ["X-Total-Count"],
+
     maxAge: 600,
   }),
 );

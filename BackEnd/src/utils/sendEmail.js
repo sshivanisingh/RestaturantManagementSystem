@@ -1,37 +1,73 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// ─────────────────────────────────────────────────────────────────────────────
+// SMTP TRANSPORTER
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ─── Send Email ───────────────────────────────────────────────────────────────
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: false, // false for port 587
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VERIFY SMTP CONFIGURATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+transporter.verify((error) => {
+  if (error) {
+    console.error("❌ SMTP configuration error:");
+    console.error(error.message);
+  } else {
+    console.log("✅ SMTP server is ready to send emails");
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEND EMAIL
+// ─────────────────────────────────────────────────────────────────────────────
 
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
-    console.log("📧 Sending email...");
-    console.log("   To:", to);
-    console.log("   Subject:", subject);
+    if (!to) {
+      throw new Error("Recipient email is required");
+    }
 
-    const { data, error } = await resend.emails.send({
-      from: "BiteNest <onboarding@resend.dev>",
-      to: [to],
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      throw new Error(
+        "SMTP_USER or SMTP_PASS is missing from environment variables",
+      );
+    }
+
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📧 SENDING EMAIL");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📩 To:", to);
+    console.log("📌 Subject:", subject);
+
+    const info = await transporter.sendMail({
+      from: `"BiteNest" <${process.env.SMTP_USER}>`,
+      to,
       subject,
       html,
       text,
     });
 
-    if (error) {
-      console.error("❌ Resend email error:");
-      console.error(error);
-
-      throw new Error(error.message || "Email could not be sent");
-    }
-
     console.log("✅ Email sent successfully");
-    console.log("   Resend ID:", data?.id);
+    console.log("📨 Message ID:", info.messageId);
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-    return data;
+    return info;
   } catch (error) {
-    console.error("❌ Email sending failed:");
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.error("❌ EMAIL SENDING FAILED");
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.error(error);
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     throw new Error(
       `Email could not be sent: ${error.message || "Unknown email error"}`,

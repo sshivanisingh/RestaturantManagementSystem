@@ -1,16 +1,12 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { Resend } from "resend";
 
 import { Restaurant } from "../models/restaurant.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { sendOtp, verifyOtp, otpStore } from "../utils/sendOtp.js";
+import { sendEmail } from "../utils/sendEmail.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { User } from "../models/user.model.js";
-
-// ─── Resend Client ────────────────────────────────────────────────────────────
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ─── Cookie Options ───────────────────────────────────────────────────────────
 
@@ -123,6 +119,7 @@ class AuthService {
       }
 
       const accessToken = restaurant.generateAccessToken();
+
       const refreshToken = restaurant.generateRefreshToken();
 
       restaurant.refreshToken = refreshToken;
@@ -175,6 +172,7 @@ class AuthService {
     }
 
     const accessToken = user.generateAccessToken();
+
     const refreshToken = user.generateRefreshToken();
 
     user.refreshToken = refreshToken;
@@ -307,89 +305,105 @@ class AuthService {
     try {
       console.log("📧 Sending password reset email to:", email);
 
-      const { data, error } = await resend.emails.send({
-        from: "BiteNest <onboarding@resend.dev>",
-
-        to: [email],
+      await sendEmail({
+        to: email,
 
         subject: "Password Reset Request",
 
         html: `
-            <div style="
-              font-family:Arial,sans-serif;
-              max-width:420px;
-              margin:auto;
-              padding:32px;
-              border:1px solid #e5e7eb;
-              border-radius:8px;
+          <div style="
+            font-family: Arial, sans-serif;
+            max-width: 420px;
+            margin: auto;
+            padding: 32px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #ffffff;
+          ">
+
+            <h2 style="
+              color: #111827;
+              margin-bottom: 20px;
             ">
+              Password Reset 🔐
+            </h2>
 
-              <h2>
-                Password Reset 🔐
-              </h2>
+            <p style="
+              color: #374151;
+              font-size: 15px;
+            ">
+              Hi ${restaurant.owner.fullName},
+            </p>
 
-              <p>
-                Hi ${restaurant.owner.fullName},
-                click below to reset your password:
-              </p>
+            <p style="
+              color: #374151;
+              font-size: 15px;
+            ">
+              We received a request to reset your
+              BiteNest account password.
+            </p>
 
-              <a
-                href="${resetUrl}"
-                style="
-                  display:inline-block;
-                  padding:12px 28px;
-                  background:#dc2626;
-                  color:#fff;
-                  border-radius:6px;
-                  text-decoration:none;
-                  font-weight:bold;
-                  margin:16px 0;
-                "
-              >
-                Reset Password
-              </a>
+            <p style="
+              color: #374151;
+              font-size: 15px;
+            ">
+              Click the button below to reset your
+              password:
+            </p>
 
-              <p style="
-                color:#9ca3af;
-                font-size:13px;
-              ">
-                Expires in
-                <strong>15 minutes</strong>.
-                <br/>
-                Ignore if you didn't request this.
-              </p>
+            <a
+              href="${resetUrl}"
+              style="
+                display: inline-block;
+                padding: 12px 28px;
+                background: #dc2626;
+                color: #ffffff;
+                border-radius: 6px;
+                text-decoration: none;
+                font-weight: bold;
+                margin: 16px 0;
+              "
+            >
+              Reset Password
+            </a>
 
-            </div>
-          `,
+            <p style="
+              color: #9ca3af;
+              font-size: 13px;
+              margin-top: 20px;
+            ">
+              This password reset link will expire
+              in <strong>15 minutes</strong>.
+            </p>
+
+            <p style="
+              color: #9ca3af;
+              font-size: 13px;
+            ">
+              If you didn't request a password reset,
+              you can safely ignore this email.
+            </p>
+
+          </div>
+        `,
 
         text:
-          `Hi ${restaurant.owner.fullName}, ` +
-          `reset your password here: ${resetUrl}`,
+          `Hi ${restaurant.owner.fullName},\n\n` +
+          `We received a request to reset your ` +
+          `BiteNest account password.\n\n` +
+          `Reset your password using this link:\n` +
+          `${resetUrl}\n\n` +
+          `This link expires in 15 minutes.\n\n` +
+          `If you didn't request a password reset, ` +
+          `you can safely ignore this email.`,
       });
 
-      if (error) {
-        console.error("❌ Resend password reset error:");
-
-        console.error(error);
-
-        restaurant.resetPasswordToken = null;
-        restaurant.resetPasswordExpiry = null;
-
-        await restaurant.save({
-          validateBeforeSave: false,
-        });
-
-        throw new ApiError(500, "Reset email failed. Try again.");
-      }
-
-      console.log("✅ Password reset email sent");
-
-      console.log("📨 Resend ID:", data?.id);
+      console.log("✅ Password reset email sent successfully");
     } catch (error) {
       console.error("❌ Password reset email error:");
-
       console.error(error);
 
+      // Clear reset token if email sending fails
       restaurant.resetPasswordToken = null;
       restaurant.resetPasswordExpiry = null;
 
