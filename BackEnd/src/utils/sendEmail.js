@@ -1,8 +1,8 @@
 import nodemailer from "nodemailer";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Gmail Transporter
-// ─────────────────────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// GMAIL SMTP TRANSPORTER
+// ═════════════════════════════════════════════════════════════════════════════
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -11,24 +11,16 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+
+  // Connection timeouts
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 20000,
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Verify Gmail connection
-// ─────────────────────────────────────────────────────────────────────────────
-
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Gmail SMTP verification failed:");
-    console.error(error);
-  } else {
-    console.log("✅ Gmail SMTP server is ready");
-  }
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Send Email
-// ─────────────────────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// SEND EMAIL
+// ═════════════════════════════════════════════════════════════════════════════
 
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
@@ -38,6 +30,16 @@ const sendEmail = async ({ to, subject, html, text }) => {
     console.log("📩 To:", to);
     console.log("📌 Subject:", subject);
 
+    // Validate environment variables
+    if (!process.env.SMTP_USER) {
+      throw new Error("SMTP_USER is not configured");
+    }
+
+    if (!process.env.SMTP_PASS) {
+      throw new Error("SMTP_PASS is not configured");
+    }
+
+    // Send email
     const info = await transporter.sendMail({
       from: `"BiteNest" <${process.env.SMTP_USER}>`,
       to,
@@ -48,7 +50,10 @@ const sendEmail = async ({ to, subject, html, text }) => {
 
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("✅ EMAIL SENT SUCCESSFULLY");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📩 To:", to);
     console.log("📨 Message ID:", info.messageId);
+    console.log("📡 Response:", info.response);
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     return info;
@@ -60,6 +65,10 @@ const sendEmail = async ({ to, subject, html, text }) => {
     console.error("Code:", error.code);
     console.error("Command:", error.command);
     console.error("Message:", error.message);
+
+    if (error.response) {
+      console.error("Response:", error.response);
+    }
 
     console.error(error);
 

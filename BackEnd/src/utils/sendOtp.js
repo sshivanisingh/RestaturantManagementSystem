@@ -2,17 +2,23 @@ import { ApiError } from "./ApiError.js";
 import { OTP } from "../models/otp.model.js";
 import { sendEmail } from "./sendEmail.js";
 
-// ─── OTP Generator ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Generate OTP
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// ─── Legacy in-memory store ───────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Legacy in-memory store
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const otpStore = new Map();
 
-// ─── Send OTP ─────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Send OTP
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const sendOtp = async (email, name = "User") => {
   if (!email) {
@@ -20,6 +26,7 @@ export const sendOtp = async (email, name = "User") => {
   }
 
   const normalizedEmail = email.trim().toLowerCase();
+
   const otp = generateOtp();
 
   try {
@@ -28,16 +35,8 @@ export const sendOtp = async (email, name = "User") => {
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("📩 To:", normalizedEmail);
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Check SMTP configuration
-    // ─────────────────────────────────────────────────────────────────────────
-
-    if (
-      !process.env.SMTP_HOST ||
-      !process.env.SMTP_PORT ||
-      !process.env.SMTP_USER ||
-      !process.env.SMTP_PASS
-    ) {
+    // Check Gmail configuration
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
       console.error("❌ SMTP configuration is missing");
 
       throw new ApiError(500, "Email service is not configured");
@@ -45,18 +44,12 @@ export const sendOtp = async (email, name = "User") => {
 
     console.log("🔐 SMTP configuration loaded");
 
-    // ─────────────────────────────────────────────────────────────────────────
     // Remove previous OTP
-    // ─────────────────────────────────────────────────────────────────────────
-
     await OTP.deleteMany({
       email: normalizedEmail,
     });
 
-    // ─────────────────────────────────────────────────────────────────────────
     // Save new OTP
-    // ─────────────────────────────────────────────────────────────────────────
-
     await OTP.create({
       email: normalizedEmail,
       otp,
@@ -64,10 +57,7 @@ export const sendOtp = async (email, name = "User") => {
 
     console.log("💾 OTP saved to MongoDB");
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Send OTP through Gmail SMTP
-    // ─────────────────────────────────────────────────────────────────────────
-
+    // Send email
     await sendEmail({
       to: normalizedEmail,
 
@@ -75,69 +65,116 @@ export const sendOtp = async (email, name = "User") => {
 
       html: `
         <!DOCTYPE html>
+
         <html>
-          <body style="
-            margin:0;
-            padding:0;
-            background:#f5f5f5;
-            font-family:Arial,Helvetica,sans-serif;
-          ">
+          <head>
+            <meta charset="UTF-8" />
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1.0"
+            />
 
-            <div style="
-              max-width:480px;
-              margin:40px auto;
-              background:#ffffff;
-              border:1px solid #e5e7eb;
-              border-radius:12px;
-              padding:32px;
-              text-align:center;
-            ">
+            <title>BiteNest Email Verification</title>
+          </head>
 
-              <h2 style="
-                margin:0 0 10px;
-                color:#111827;
-              ">
+          <body
+            style="
+              margin: 0;
+              padding: 0;
+              background-color: #f5f5f5;
+              font-family: Arial, Helvetica, sans-serif;
+            "
+          >
+
+            <div
+              style="
+                max-width: 480px;
+                margin: 40px auto;
+                padding: 32px;
+                background: #ffffff;
+                border: 1px solid #e5e7eb;
+                border-radius: 12px;
+                text-align: center;
+              "
+            >
+
+              <h2
+                style="
+                  margin: 0 0 12px;
+                  color: #111827;
+                "
+              >
                 Hello, ${name} 👋
               </h2>
 
-              <p style="
-                margin:0 0 25px;
-                color:#6b7280;
-                font-size:15px;
-              ">
-                Use the following OTP to verify your email address:
+              <p
+                style="
+                  margin: 0 0 24px;
+                  color: #6b7280;
+                  font-size: 15px;
+                  line-height: 1.6;
+                "
+              >
+                Use the following one-time password
+                to verify your BiteNest email address.
               </p>
 
-              <div style="
-                display:inline-block;
-                padding:15px 25px;
-                background:#f3f4f6;
-                border-radius:8px;
-                color:#f97316;
-                font-size:38px;
-                font-weight:700;
-                letter-spacing:10px;
-                margin:10px 0 25px;
-              ">
+              <div
+                style="
+                  display: inline-block;
+                  padding: 15px 25px;
+                  background-color: #f3f4f6;
+                  border-radius: 8px;
+                  color: #f97316;
+                  font-size: 38px;
+                  font-weight: 700;
+                  letter-spacing: 10px;
+                  margin: 10px 0 25px;
+                "
+              >
                 ${otp}
               </div>
 
-              <p style="
-                margin:0 0 10px;
-                color:#6b7280;
-                font-size:14px;
-              ">
+              <p
+                style="
+                  margin: 0 0 12px;
+                  color: #6b7280;
+                  font-size: 14px;
+                  line-height: 1.6;
+                "
+              >
                 This OTP will expire in
                 <strong>10 minutes</strong>.
               </p>
 
-              <p style="
-                margin:20px 0 0;
-                color:#9ca3af;
-                font-size:12px;
-              ">
+              <p
+                style="
+                  margin: 20px 0 0;
+                  color: #9ca3af;
+                  font-size: 12px;
+                  line-height: 1.6;
+                "
+              >
                 If you did not request this verification code,
                 you can safely ignore this email.
+              </p>
+
+              <hr
+                style="
+                  margin: 25px 0;
+                  border: 0;
+                  border-top: 1px solid #e5e7eb;
+                "
+              />
+
+              <p
+                style="
+                  margin: 0;
+                  color: #9ca3af;
+                  font-size: 11px;
+                "
+              >
+                © ${new Date().getFullYear()} BiteNest
               </p>
 
             </div>
@@ -146,16 +183,21 @@ export const sendOtp = async (email, name = "User") => {
         </html>
       `,
 
-      text:
-        `Hello ${name},\n\n` +
-        `Your BiteNest email verification OTP is: ${otp}\n\n` +
-        `This OTP is valid for 10 minutes.\n` +
-        `If you did not request this code, please ignore this email.`,
-    });
+      text: `
+Hello ${name},
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Success
-    // ─────────────────────────────────────────────────────────────────────────
+Your BiteNest email verification OTP is:
+
+${otp}
+
+This OTP will expire in 10 minutes.
+
+If you did not request this verification code,
+you can safely ignore this email.
+
+© ${new Date().getFullYear()} BiteNest
+      `.trim(),
+    });
 
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("✅ OTP EMAIL SENT SUCCESSFULLY");
@@ -172,7 +214,7 @@ export const sendOtp = async (email, name = "User") => {
     console.error(error);
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-    // Remove OTP if email sending failed
+    // Remove OTP if email failed
     await OTP.deleteMany({
       email: normalizedEmail,
     }).catch((cleanupError) => {
@@ -192,7 +234,9 @@ export const sendOtp = async (email, name = "User") => {
   }
 };
 
-// ─── Verify OTP ───────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Verify OTP
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const verifyOtp = async (email, otp) => {
   if (!email || !otp) {
@@ -212,10 +256,7 @@ export const verifyOtp = async (email, otp) => {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Check expiry
-  // ─────────────────────────────────────────────────────────────────────────
-
   const createdAtTime = record.createdAt.getTime();
 
   const expiryTime = createdAtTime + 10 * 60 * 1000;
@@ -228,18 +269,12 @@ export const verifyOtp = async (email, otp) => {
     throw new ApiError(400, "OTP has expired. Please request a new one.");
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Check OTP
-  // ─────────────────────────────────────────────────────────────────────────
-
   if (record.otp !== String(otp).trim()) {
     throw new ApiError(400, "Invalid OTP. Please try again.");
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Delete OTP after successful verification
-  // ─────────────────────────────────────────────────────────────────────────
-
   await OTP.deleteOne({
     _id: record._id,
   });
