@@ -1,22 +1,34 @@
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
+// ─────────────────────────────────────────────────────────────────────────────
+// Gmail Transporter
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // Force IPv4
-  family: 4,
+const transporter = nodemailer.createTransport({
+  service: "gmail",
 
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-
-  connectionTimeout: 15000,
-  greetingTimeout: 15000,
-  socketTimeout: 20000,
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Verify Gmail connection
+// ─────────────────────────────────────────────────────────────────────────────
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ Gmail SMTP verification failed:");
+    console.error(error);
+  } else {
+    console.log("✅ Gmail SMTP server is ready");
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Send Email
+// ─────────────────────────────────────────────────────────────────────────────
 
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
@@ -34,7 +46,8 @@ const sendEmail = async ({ to, subject, html, text }) => {
       text,
     });
 
-    console.log("✅ Email sent successfully");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("✅ EMAIL SENT SUCCESSFULLY");
     console.log("📨 Message ID:", info.messageId);
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
@@ -43,10 +56,13 @@ const sendEmail = async ({ to, subject, html, text }) => {
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.error("❌ EMAIL SENDING FAILED");
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
     console.error("Code:", error.code);
-    console.error("Message:", error.message);
     console.error("Command:", error.command);
+    console.error("Message:", error.message);
+
     console.error(error);
+
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     throw new Error(
