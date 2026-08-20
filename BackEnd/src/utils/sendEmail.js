@@ -1,48 +1,24 @@
 import nodemailer from "nodemailer";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SMTP TRANSPORTER
-// ─────────────────────────────────────────────────────────────────────────────
-
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false, // false for port 587
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+
+  family: 4,
+
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 20000,
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VERIFY SMTP CONFIGURATION
-// ─────────────────────────────────────────────────────────────────────────────
-
-transporter.verify((error) => {
-  if (error) {
-    console.error("❌ SMTP configuration error:");
-    console.error(error.message);
-  } else {
-    console.log("✅ SMTP server is ready to send emails");
-  }
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SEND EMAIL
-// ─────────────────────────────────────────────────────────────────────────────
 
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
-    if (!to) {
-      throw new Error("Recipient email is required");
-    }
-
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      throw new Error(
-        "SMTP_USER or SMTP_PASS is missing from environment variables",
-      );
-    }
-
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("📧 SENDING EMAIL");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -66,6 +42,9 @@ const sendEmail = async ({ to, subject, html, text }) => {
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.error("❌ EMAIL SENDING FAILED");
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.error("Code:", error.code);
+    console.error("Command:", error.command);
+    console.error("Message:", error.message);
     console.error(error);
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
