@@ -40,12 +40,38 @@ const createTable = asyncHandler(async (req, res) => {
 
 // GET /api/v1/table
 // PUBLIC — customers can view available tables
+// GET /api/v1/table
+// PROTECTED — logged-in restaurant/admin
 const getAllTables = asyncHandler(async (req, res) => {
-  const restaurantId = getPublicRestaurantId(req);
+  const restaurantId = req.restaurant?._id;
+
+  if (!restaurantId) {
+    throw new ApiError(403, "Only restaurants can access restaurant tables");
+  }
 
   const tables = await TableService.getAllByRestaurant(restaurantId, req.query);
 
-  res.status(200).json(new ApiResponse(200, tables, "Tables fetched"));
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, tables, "Restaurant tables fetched successfully"),
+    );
+});
+
+// GET /api/v1/table/public
+// PUBLIC — customers can view tables from all restaurants
+const getPublicTables = asyncHandler(async (req, res) => {
+  const tables = await TableService.getAllPublicTables();
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        tables,
+        "All available restaurant tables fetched successfully",
+      ),
+    );
 });
 
 // GET /api/v1/table/:id
@@ -289,6 +315,8 @@ export {
   // Table
   createTable,
   getAllTables,
+  getPublicTables,
+  getPublicRestaurantId,
   getTable,
   updateTable,
   deleteTable,

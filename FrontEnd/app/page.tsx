@@ -1,13 +1,7 @@
-"use client"
+"use client";
 
-  import { redirect } from "next/navigation"
- 
+import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  return (
-    <div className="">
-       {redirect("/resturent")}
-    </div>
-  )
+  return <div className="">{redirect("/restaurant")}</div>;
 }
-
