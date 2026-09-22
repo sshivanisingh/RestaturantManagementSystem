@@ -6,7 +6,7 @@ BiteNest is a full-stack **Restaurant Management System** designed to simplify a
 
 ## 🚀 Live Project
 
-🌐 **Frontend:** http://bitenest.vercel.app/
+🌐 **Frontend:** https://bitenest.vercel.app/
 
 ---
 
