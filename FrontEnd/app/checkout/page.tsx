@@ -274,7 +274,7 @@ function CheckoutInner() {
                       "Check your email — we've sent your login credentials so you can track this order.",
                     duration: 6000,
                   });
-                  router.push(`/resturent`);
+                  router.push(`/restaurant`);
                 }
                 resolve();
               } catch {
@@ -318,7 +318,7 @@ function CheckoutInner() {
               "Check your email — we've sent your login credentials so you can track this order.",
             duration: 6000,
           });
-          router.push(`/resturent`);
+          router.push(`/restaurant`);
         }
       }
     } catch (err: any) {

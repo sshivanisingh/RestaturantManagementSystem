@@ -15,7 +15,7 @@ import { useAuth } from "../providers/auth-provider";
 import { useUserLogout } from "@/src/hooks/useUser";
 
 const NAV_LINKS = [
-  { label: "Home", href: "/resturent" },
+  { label: "Home", href: "/restaurant" },
   { label: "Reservations", href: "/userreservation" },
   { label: "Items", href: "/items" },
   // { label: "About", href: "/about" },
