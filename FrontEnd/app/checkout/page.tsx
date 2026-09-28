@@ -271,7 +271,7 @@ function CheckoutInner() {
                   toast({
                     title: "🎉 Payment successful!",
                     description:
-                      "Check your email — we've sent your login credentials so you can track this order.",
+                      "Check your email — we've sent your login credentials. If not in your inbox, please check your Spam or Junk folder.",
                     duration: 6000,
                   });
                   router.push(`/restaurant`);
