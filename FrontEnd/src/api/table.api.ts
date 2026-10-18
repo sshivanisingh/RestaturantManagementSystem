@@ -3,10 +3,10 @@ import type { ApiResponse, Table, UpdateTableStatusParams } from "../types/api.t
 
 // ─── Table API ────────────────────────────────────────────────────────────────
 
-export const getAllTablesApi = (): Promise<ApiResponse<Table[]>> =>
-  api
-    .get<ApiResponse<Table[]>>("/table")
-    .then((r) => r.data);
+export const getAvailableTablesApi = async () => {
+  const response = await axiosInstance.get("/table/public");
+  return response.data;
+};
 
 export const getTableApi = (id: string): Promise<ApiResponse<Table>> =>
   api
