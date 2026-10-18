@@ -86,7 +86,7 @@ function ForgotPasswordModal({
                   Forgot Password?
                 </DialogTitle>
                 <DialogDescription className="text-xs font-poppins text-gray-400">
-                  Enter your owner email — we'll send a reset link
+                  Enter your email — we'll send a reset link
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -281,7 +281,7 @@ function LoginForm() {
             Sign in
           </h1>
           <p className="text-sm font-poppins text-gray-400">
-            Sign in to your restaurant dashboard
+            Sign in to your account as a restaurant owner or customer
           </p>
         </div>
 
