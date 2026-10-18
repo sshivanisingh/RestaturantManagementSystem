@@ -47,6 +47,14 @@ class TableService {
     return tables;
   }
 
+  // Public: get available tables without authentication
+static async getAllPublicTables() {
+  return await Table.find({ status: "available" })
+    .sort({ tableLabel: 1 })
+    .select("-__v -reservations -userId")
+    .lean();
+}
+
   // ─── Get one table ─────────────────────────────────────────────
   static async getOne(tableId, restaurantId) {
     const table = await Table
