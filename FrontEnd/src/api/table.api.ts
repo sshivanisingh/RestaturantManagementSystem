@@ -1,37 +1,58 @@
+
 import api from "./axiosInstance";
-import type { ApiResponse, Table, UpdateTableStatusParams } from "../types/api.types";
+import type {
+  ApiResponse,
+  Table,
+  UpdateTableStatusParams,
+} from "../types/api.types";
 
-// ─── Table API ────────────────────────────────────────────────────────────────
+// ─── Public Table API ────────────────────────────────────────────────────────
 
-export const getAvailableTablesApi = async () => {
-  const response = await axiosInstance.get("/table/public");
-  return response.data;
-};
+export const getAvailableTablesApi = (): Promise<ApiResponse<Table[]>> =>
+  api
+    .get<ApiResponse<Table[]>>("/table/public")
+    .then((response) => response.data);
 
-export const getTableApi = (id: string): Promise<ApiResponse<Table>> =>
+// ─── Single Table API ───────────────────────────────────────────────────────
+
+export const getTableApi = (
+  id: string
+): Promise<ApiResponse<Table>> =>
   api
     .get<ApiResponse<Table>>(`/table/${id}`)
-    .then((r) => r.data);
+    .then((response) => response.data);
+
+// ─── Create Table API ───────────────────────────────────────────────────────
 
 export const createTableApi = (
   data: Pick<Table, "tableLabel"> & { status?: Table["status"] }
 ): Promise<ApiResponse<Table>> =>
   api
     .post<ApiResponse<Table>>("/table", data)
-    .then((r) => r.data);
+    .then((response) => response.data);
+
+// ─── Update Table API ───────────────────────────────────────────────────────
 
 export const updateTableApi = (
   id: string,
-  data: Partial<Pick<Table, "tableLabel" | "status" | "userId">>
+  data: Partial<
+    Pick<Table, "tableLabel" | "status" | "userId">
+  >
 ): Promise<ApiResponse<Table>> =>
   api
     .patch<ApiResponse<Table>>(`/table/${id}`, data)
-    .then((r) => r.data);
+    .then((response) => response.data);
 
-export const deleteTableApi = (id: string): Promise<ApiResponse<null>> =>
+// ─── Delete Table API ───────────────────────────────────────────────────────
+
+export const deleteTableApi = (
+  id: string
+): Promise<ApiResponse<null>> =>
   api
     .delete<ApiResponse<null>>(`/table/${id}`)
-    .then((r) => r.data);
+    .then((response) => response.data);
+
+// ─── Update Table Status API ────────────────────────────────────────────────
 
 export const updateTableStatusApi = (
   id: string,
@@ -39,4 +60,4 @@ export const updateTableStatusApi = (
 ): Promise<ApiResponse<Table>> =>
   api
     .patch<ApiResponse<Table>>(`/table/${id}/status`, data)
-    .then((r) => r.data);
+    .then((response) => response.data);
