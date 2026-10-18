@@ -47,17 +47,9 @@ class TableService {
     return tables;
   }
 
+// Public: get available tables without authentication
 static async getAllPublicTables() {
-  const restaurantId = process.env.RESTAURANT_ID;
-
-  if (!restaurantId) {
-    throw new ApiError(500, "RESTAURANT_ID is not configured");
-  }
-
-  return await Table.find({
-    restaurantId,
-    status: "available",
-  })
+  return await Table.find({ status: "available" })
     .sort({ tableLabel: 1 })
     .select("-__v -reservations -userId")
     .lean();
