@@ -16,7 +16,7 @@ import {
   checkIn,
   checkOut,
   markNoShow,
-} from "../controllers/TableController.js";
+} from "../controllers/table.controller.js";
 
 // Import your existing authentication middleware here.
 import { verifyRestaurant } from "../middlewares/auth.middleware.js";
