@@ -375,16 +375,19 @@ export default function RegisterPage() {
   const [otpModal, setOtpModal] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
 
-  const { mutate: register, isPending } = useRegister({
-    onSuccess: () =>
-      toast({ title: "🎉 Account Created!", description: "Welcome aboard!" }),
-    onError: (err: any) =>
-      toast({
-        title: "Registration Failed",
-        description: err?.response?.data?.message || "Something went wrong",
-        variant: "destructive",
-      }),
-  });
+ const { mutate: register, isPending } = useRegister({
+  onSuccess: () =>
+    toast({
+      title: "🎉 Account Created!",
+      description: `Welcome, ${form.ownerFullName}!`,
+    }),
+  onError: (err: any) =>
+    toast({
+      title: "Registration Failed",
+      description: err.message,
+      variant: "destructive",
+    }),
+});
 
   const { mutate: sendOtp, isPending: sendingOtp } = useSendOtp({
     onSuccess: () => {
