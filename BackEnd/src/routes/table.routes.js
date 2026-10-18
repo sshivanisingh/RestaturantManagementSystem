@@ -1,4 +1,7 @@
 import { Router } from "express";
+
+import { verifyJWT } from "../middleware/auth.middleware.js";
+
 import {
   createTable,
   getAllTables,
@@ -18,36 +21,62 @@ import {
   markNoShow,
 } from "../controllers/table.controller.js";
 
-// Import your existing authentication middleware here.
-import { verifyRestaurant } from "../middlewares/auth.middleware.js";
-
 const router = Router();
 
-// PUBLIC: customers can view tables without logging in.
-// Register before "/:id".
+// ============================================================
+// PUBLIC / CUSTOMER
+// ============================================================
+
+// IMPORTANT:
+// This route MUST be before /:id
+
 router.get("/public", getPublicTables);
 
-// PROTECTED: restaurant/admin table management.
-router.get("/", verifyRestaurant, getAllTables);
-router.post("/", verifyRestaurant, createTable);
-
-router.get("/reservations/all", verifyRestaurant, getAllReservations);
-
-router.get("/:id", getTable);
-router.patch("/:id", verifyRestaurant, updateTable);
-router.delete("/:id", verifyRestaurant, deleteTable);
-router.patch("/:id/status", verifyRestaurant, updateTableStatus);
-
-// Customer reservation creation remains public.
+// Customer creates reservation
 router.post("/:id/reservations", createReservation);
 
-// Protected reservation management.
-router.get("/:id/reservations", verifyRestaurant, getReservations);
-router.patch("/:id/reservations/:reservationId", verifyRestaurant, updateReservation);
-router.patch("/:id/reservations/:reservationId/confirm", verifyRestaurant, confirmReservation);
-router.patch("/:id/reservations/:reservationId/cancel", verifyRestaurant, cancelReservation);
-router.patch("/:id/reservations/:reservationId/checkin", verifyRestaurant, checkIn);
-router.patch("/:id/reservations/:reservationId/checkout", verifyRestaurant, checkOut);
-router.patch("/:id/reservations/:reservationId/noshow", verifyRestaurant, markNoShow);
+// ============================================================
+// PROTECTED RESTAURANT OWNER
+// ============================================================
+
+router.get("/reservations/all", verifyJWT, getAllReservations);
+
+router.get("/", verifyJWT, getAllTables);
+
+router.get("/:id", verifyJWT, getTable);
+
+router.post("/", verifyJWT, createTable);
+
+router.patch("/:id", verifyJWT, updateTable);
+
+router.delete("/:id", verifyJWT, deleteTable);
+
+router.patch("/:id/status", verifyJWT, updateTableStatus);
+
+// ============================================================
+// RESERVATION MANAGEMENT
+// ============================================================
+
+router.get("/:id/reservations", verifyJWT, getReservations);
+
+router.patch("/:id/reservations/:reservationId", verifyJWT, updateReservation);
+
+router.patch(
+  "/:id/reservations/:reservationId/confirm",
+  verifyJWT,
+  confirmReservation,
+);
+
+router.patch(
+  "/:id/reservations/:reservationId/cancel",
+  verifyJWT,
+  cancelReservation,
+);
+
+router.patch("/:id/reservations/:reservationId/checkin", verifyJWT, checkIn);
+
+router.patch("/:id/reservations/:reservationId/checkout", verifyJWT, checkOut);
+
+router.patch("/:id/reservations/:reservationId/noshow", verifyJWT, markNoShow);
 
 export default router;
