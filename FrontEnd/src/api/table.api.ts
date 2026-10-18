@@ -5,7 +5,7 @@ import type { ApiResponse, Table, UpdateTableStatusParams } from "../types/api.t
 
 export const getAllTablesApi = (): Promise<ApiResponse<Table[]>> =>
   api
-    .get<ApiResponse<Table[]>>("/table")
+    .get<ApiResponse<Table[]>>("/table/public")
     .then((r) => r.data);
 
 export const getTableApi = (id: string): Promise<ApiResponse<Table>> =>
