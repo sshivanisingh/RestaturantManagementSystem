@@ -1,23 +1,15 @@
-
+// app/reservation/page.tsx
 "use client";
 
 import React, { useState } from "react";
-import { useGetAvailableTables } from "@/src/hooks/useTable";
+import { useGetAllTables } from "@/src/hooks/useTable";
 import { useCreateReservation } from "@/src/hooks/usereservation";
+import { useUpdateTableStatus } from "@/src/hooks/useTable";
 import { toast } from "sonner";
-import {
-  CalendarIcon,
-  Users,
-  Phone,
-  Mail,
-  User,
-  Clock,
-  Coffee,
-  CheckCircle2,
-  Zap,
-} from "lucide-react";
+import { CalendarIcon, Users, Phone, Mail, User, Clock, Coffee, CheckCircle2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Navbar from "@/components/Navbar/navbar";
+ import Navbar from "@/components/Navbar/navbar";
+ import { useToast } from "@/components/ui/use-toast";
 
 interface ReservationFormData {
   guestName: string;
@@ -42,29 +34,19 @@ const initialFormData: ReservationFormData = {
 const ReservationPage = () => {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] =
-    useState<ReservationFormData>(initialFormData);
-  const [selectedTableForBooking, setSelectedTableForBooking] =
-    useState<string | null>(null);
+  const [formData, setFormData] = useState<ReservationFormData>(initialFormData);
+  const [selectedTableForBooking, setSelectedTableForBooking] = useState<string | null>(null);
 
-  // Public endpoint: customers do not need to log in to view tables.
-  const {
-    data: tablesResponse,
-    isLoading,
-    isError,
-    refetch,
-  } = useGetAvailableTables();
-
+  const { data: tablesResponse, isLoading, refetch } = useGetAllTables();
   const createReservation = useCreateReservation();
+  const updateTableStatus = useUpdateTableStatus();
 
-  const availableTables =
-    tablesResponse?.data?.filter(
-      (table) => table.status === "available"
-    ) ?? [];
+  // Filter only available tables
+  const availableTables = tablesResponse?.data?.filter(
+    (table: any) => table.status === "available"
+  ) || [];
 
-  const selectedTable = availableTables.find(
-    (table) => table._id === selectedTableId
-  );
+  const selectedTable = availableTables.find((t: any) => t._id === selectedTableId) as any;
 
   const handleTableClick = (tableId: string) => {
     setSelectedTableId(tableId);
@@ -73,78 +55,56 @@ const ReservationPage = () => {
   };
 
   const handleInputChange = (
-    event: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = event.target;
-
-    setFormData((previous) => ({
-      ...previous,
-      [name]:
-        name === "partySize" || name === "durationMins"
-          ? Number(value)
-          : value,
-    }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     if (!selectedTableId || !selectedTable) {
       toast.error("Please select a table");
       return;
     }
 
-    if (
-      !formData.guestName.trim() ||
-      !formData.guestPhone.trim() ||
-      !formData.date
-    ) {
+    if (!formData.guestName || !formData.guestPhone || !formData.date) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    if (formData.partySize > selectedTable.capacity) {
-      toast.error(
-        `This table accommodates a maximum of ${selectedTable.capacity} guests.`
-      );
-      return;
-    }
-
     const reservationData = {
-      guestName: formData.guestName.trim(),
-      guestPhone: formData.guestPhone.trim(),
-      guestEmail: formData.guestEmail.trim() || undefined,
+      guestName: formData.guestName,
+      guestPhone: formData.guestPhone,
+      guestEmail: formData.guestEmail || undefined,
       date: new Date(formData.date).toISOString(),
       partySize: formData.partySize,
       durationMins: formData.durationMins,
-      specialRequest: formData.specialRequest.trim() || undefined,
+      specialRequest: formData.specialRequest || undefined,
     };
 
     try {
+      // First create the reservation
       await createReservation.mutateAsync({
         tableId: selectedTableId,
         data: reservationData,
       });
 
-      toast.success(
-        `Reservation request submitted for ${selectedTable.tableLabel}!`
-      );
+      // Then update table status to "reserved"
+      await updateTableStatus.mutateAsync({
+        id: selectedTableId,
+        status: "reserved"
+      });
 
+      toast.success(`Table ${selectedTable.tableLabel} reserved successfully!`);
       setShowForm(false);
       setSelectedTableId(null);
       setSelectedTableForBooking(null);
       setFormData(initialFormData);
-
-      await refetch();
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to create reservation";
-
-      toast.error(message);
+      refetch(); // Refresh tables to update availability
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to create reservation");
     }
   };
 
@@ -159,43 +119,29 @@ const ReservationPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4" />
-          <p className="text-gray-600">Loading available tables...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading available tables...</p>
         </div>
       </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <>
-        <Navbar />
-        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gray-50 px-4">
-          <p className="text-red-600">
-            Unable to load tables. Please try again.
-          </p>
-          <Button onClick={() => refetch()}>Retry</Button>
-        </div>
-      </>
     );
   }
 
   return (
     <>
       <Navbar />
-
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-8 px-4">
         <div className="max-w-7xl mx-auto">
+          {/* Header */}
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl font-satisfy bg-gradient-to-r from-brand-primary to-purple-600 bg-clip-text text-transparent mb-4">
               Book Your Table
             </h1>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Choose from our available tables and reserve your spot for an
-              amazing dining experience.
+              Choose from our available tables and reserve your spot for an amazing dining experience
             </p>
           </div>
 
+          {/* Available Tables Grid */}
           {availableTables.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-lg shadow-sm">
               <Coffee className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -203,11 +149,8 @@ const ReservationPage = () => {
                 No Tables Available
               </h3>
               <p className="text-gray-500">
-                All tables are currently booked. Please check back later.
+                All tables are currently booked. Please check back later!
               </p>
-              <Button className="mt-4" onClick={() => refetch()}>
-                Refresh Tables
-              </Button>
             </div>
           ) : (
             <>
@@ -215,13 +158,11 @@ const ReservationPage = () => {
                 <h2 className="text-2xl font-semibold text-gray-800">
                   Available Tables ({availableTables.length})
                 </h2>
-                <p className="text-gray-500">
-                  Select a table to make a reservation.
-                </p>
+                <p className="text-gray-500">Click on any table to make a reservation</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {availableTables.map((table) => (
+                {availableTables.map((table: any) => (
                   <div
                     key={table._id}
                     onClick={() => handleTableClick(table._id)}
@@ -240,41 +181,35 @@ const ReservationPage = () => {
                       <div className="space-y-2 text-gray-600">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4" />
-                          <span className="text-sm">
-                            Capacity: {table.capacity} people
-                          </span>
+                          <span className="text-sm">Capacity: {table.capacity} people</span>
                         </div>
-
                         {table.section && (
                           <div className="flex items-center gap-2">
                             <Coffee className="w-4 h-4" />
-                            <span className="text-sm">
-                              Section: {table.section}
-                            </span>
+                            <span className="text-sm">Section: {table.section}</span>
                           </div>
                         )}
                       </div>
 
                       <Button
-                        className={`w-full mt-4 transition-all ${
-                          selectedTableForBooking === table._id
-                            ? "bg-brand-primary text-white hover:bg-brand-primary/90"
-                            : "bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primary/90 hover:to-brand-secondary/90 text-white"
-                        }`}
-                        onClick={(event) => {
-                          event.stopPropagation();
+                        className={`w-full mt-4 transition-all
+                          ${
+                            selectedTableForBooking === table._id
+                              ? "bg-brand-primary text-white hover:bg-brand-primary/90"
+                              : "bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primary/90 hover:to-brand-secondary/90 text-white"
+                          }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
                           handleTableClick(table._id);
                         }}
                       >
                         {selectedTableForBooking === table._id ? (
                           <>
-                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                            Selected
+                            <CheckCircle2 className="mr-2 h-4 w-4" /> Selected
                           </>
                         ) : (
                           <>
-                            <Zap className="mr-2 h-4 w-4" />
-                            Reserve Now
+                            <Zap className="mr-2 h-4 w-4" /> Reserve Now
                           </>
                         )}
                       </Button>
@@ -285,18 +220,17 @@ const ReservationPage = () => {
             </>
           )}
 
+          {/* Reservation Form Modal */}
           {showForm && selectedTable && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-satisfy text-brand-primary">
                     Reserve {selectedTable.tableLabel}
                   </h2>
                   <button
-                    type="button"
                     onClick={closeForm}
                     className="text-gray-500 hover:text-gray-700 text-2xl"
-                    aria-label="Close reservation form"
                   >
                     ×
                   </button>
@@ -319,7 +253,7 @@ const ReservationPage = () => {
                       Full Name <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
                         name="guestName"
@@ -337,7 +271,7 @@ const ReservationPage = () => {
                       Phone Number <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="tel"
                         name="guestPhone"
@@ -355,7 +289,7 @@ const ReservationPage = () => {
                       Email Address
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="email"
                         name="guestEmail"
@@ -372,14 +306,13 @@ const ReservationPage = () => {
                       Date & Time <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="datetime-local"
                         name="date"
                         value={formData.date}
                         onChange={handleInputChange}
                         required
-                        min={new Date().toISOString().slice(0, 16)}
                         className="w-full border rounded-lg px-10 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                       />
                     </div>
@@ -390,19 +323,16 @@ const ReservationPage = () => {
                       Number of Guests <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <select
                         name="partySize"
                         value={formData.partySize}
                         onChange={handleInputChange}
                         className="w-full border rounded-lg px-10 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                       >
-                        {Array.from(
-                          { length: Math.min(selectedTable.capacity, 10) },
-                          (_, index) => index + 1
-                        ).map((number) => (
-                          <option key={number} value={number}>
-                            {number} {number === 1 ? "Guest" : "Guests"}
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                          <option key={num} value={num}>
+                            {num} {num === 1 ? "Guest" : "Guests"}
                           </option>
                         ))}
                       </select>
@@ -414,18 +344,18 @@ const ReservationPage = () => {
                       Duration
                     </label>
                     <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <select
                         name="durationMins"
                         value={formData.durationMins}
                         onChange={handleInputChange}
                         className="w-full border rounded-lg px-10 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                       >
-                        <option value={60}>1 Hour</option>
-                        <option value={90}>1.5 Hours</option>
-                        <option value={120}>2 Hours</option>
-                        <option value={150}>2.5 Hours</option>
-                        <option value={180}>3 Hours</option>
+                        <option value="60">1 Hour</option>
+                        <option value="90">1.5 Hours</option>
+                        <option value="120">2 Hours</option>
+                        <option value="150">2.5 Hours</option>
+                        <option value="180">3 Hours</option>
                       </select>
                     </div>
                   </div>
@@ -454,12 +384,17 @@ const ReservationPage = () => {
                     </button>
                     <Button
                       type="submit"
-                      disabled={createReservation.isPending}
+                      disabled={createReservation.isPending || updateTableStatus.isPending}
                       className="flex-1 bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primary/90 hover:to-brand-secondary/90 text-white"
                     >
-                      {createReservation.isPending
-                        ? "Processing..."
-                        : "Confirm Reservation"}
+                      {createReservation.isPending || updateTableStatus.isPending ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Processing...
+                        </span>
+                      ) : (
+                        "Confirm Reservation"
+                      )}
                     </Button>
                   </div>
                 </form>
