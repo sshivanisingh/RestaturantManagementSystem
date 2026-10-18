@@ -1,11 +1,11 @@
+// hooks/useReservation.ts
 import {
   useQuery,
   useMutation,
   useQueryClient,
-  type UseQueryOptions,
-  type UseMutationOptions,
+  UseQueryOptions,
+  UseMutationOptions,
 } from "@tanstack/react-query";
-
 import {
   createReservationApi,
   getReservationsApi,
@@ -18,27 +18,21 @@ import {
   markNoShowApi,
 } from "../api";
 
-import { queryKeys } from "../api/queryKeys";
 
+
+import { queryKeys } from "../api/queryKeys";
 import type {
   ApiResponse,
   Reservation,
   CreateReservationParams,
   UpdateReservationParams,
+  CancelReservationParams,
 } from "../types/api.types";
 
-// ─── Query options ────────────────────────────────────────────────────────────
-
-type ReservationListOptions = Omit<
-  UseQueryOptions<ApiResponse<Reservation[]>, Error>,
-  "queryKey" | "queryFn"
->;
-
-// ─── Get all reservations (restaurant/admin) ──────────────────────────────────
-// GET /api/v1/table/reservations/all
-
+// ─── useGetAllReservations ────────────────────────────────────────────────────
+// GET /tables/reservations/all
 export const useGetAllReservations = (
-  options?: ReservationListOptions
+  options?: Omit<UseQueryOptions<ApiResponse<Reservation[]>, Error>, "queryKey" | "queryFn">
 ) => {
   return useQuery({
     queryKey: queryKeys.reservations.all(),
@@ -47,25 +41,23 @@ export const useGetAllReservations = (
   });
 };
 
-// ─── Get reservations for a table (restaurant/admin) ──────────────────────────
-// GET /api/v1/table/:id/reservations?status=&date=
-
+// ─── useGetReservations ───────────────────────────────────────────────────────
+// GET /tables/:id/reservations?status=&date=
 export const useGetReservations = (
   tableId: string,
   params?: { status?: string; date?: string },
-  options?: ReservationListOptions
+  options?: Omit<UseQueryOptions<ApiResponse<Reservation[]>, Error>, "queryKey" | "queryFn">
 ) => {
   return useQuery({
     queryKey: queryKeys.reservations.list(tableId, params),
     queryFn: () => getReservationsApi(tableId, params),
-    enabled: Boolean(tableId),
+    enabled: !!tableId,
     ...options,
   });
 };
 
-// ─── Create reservation (customer/guest) ──────────────────────────────────────
-// POST /api/v1/table/:id/reservations
-
+// ─── useCreateReservation ─────────────────────────────────────────────────────
+// POST /tables/:id/reservations
 export const useCreateReservation = (
   options?: UseMutationOptions<
     ApiResponse<Reservation>,
@@ -74,105 +66,70 @@ export const useCreateReservation = (
   >
 ) => {
   const queryClient = useQueryClient();
-  const { onSuccess, ...restOptions } = options ?? {};
+  const { onSuccess, onError, onSettled, ...restOptions } = options ?? {};
 
   return useMutation({
-    mutationFn: ({
-      tableId,
-      data,
-    }: {
-      tableId: string;
-      data: CreateReservationParams;
-    }) => createReservationApi(tableId, data),
-
-    ...restOptions,
-
+    mutationFn: ({ tableId, data }: { tableId: string; data: CreateReservationParams }) =>
+      createReservationApi(tableId, data),
     onSuccess: async (data, variables, context) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.list(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.all(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.detail(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.lists(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["tables", "public", "available"],
-        }),
-      ]);
-
+      // Invalidate table reservations list
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.list(variables.tableId),
+      });
+      // Invalidate all reservations
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.all(),
+      });
+      // Invalidate table detail (might affect table status)
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.tables.detail(variables.tableId),
+      });
       onSuccess?.(data, variables, context, undefined as any);
     },
+    onError,
+    onSettled,
+    ...restOptions,
   });
 };
 
-// ─── Update reservation (restaurant/admin) ───────────────────────────────────
-// PATCH /api/v1/table/:id/reservations/:reservationId
-
+// ─── useUpdateReservation ─────────────────────────────────────────────────────
+// PATCH /tables/:id/reservations/:reservationId
 export const useUpdateReservation = (
   options?: UseMutationOptions<
     ApiResponse<Reservation>,
     Error,
-    {
-      tableId: string;
-      reservationId: string;
-      data: UpdateReservationParams;
-    }
+    { tableId: string; reservationId: string; data: UpdateReservationParams }
   >
 ) => {
   const queryClient = useQueryClient();
-  const { onSuccess, ...restOptions } = options ?? {};
+  const { onSuccess, onError, onSettled, ...restOptions } = options ?? {};
 
   return useMutation({
-    mutationFn: ({
-      tableId,
-      reservationId,
-      data,
-    }: {
-      tableId: string;
-      reservationId: string;
-      data: UpdateReservationParams;
-    }) => updateReservationApi(tableId, reservationId, data),
-
-    ...restOptions,
-
+    mutationFn: ({ tableId, reservationId, data }: { tableId: string; reservationId: string; data: UpdateReservationParams }) =>
+      updateReservationApi(tableId, reservationId, data),
     onSuccess: async (data, variables, context) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.list(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.detail(
-            variables.tableId,
-            variables.reservationId
-          ),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.all(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.detail(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.lists(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["tables", "public", "available"],
-        }),
-      ]);
-
+      // Invalidate reservations list
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.list(variables.tableId),
+      });
+      // Invalidate specific reservation detail (if you have one)
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.detail(variables.tableId, variables.reservationId),
+      });
+      // Invalidate all reservations
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.all(),
+      });
       onSuccess?.(data, variables, context, undefined as any);
     },
+    onError,
+    onSettled,
+    ...restOptions,
   });
 };
 
-// ─── Confirm reservation (restaurant/admin) ────────────────────────────────────
-
+// ─── useConfirmReservation ────────────────────────────────────────────────────
+// PATCH /tables/:id/reservations/:reservationId/confirm
 export const useConfirmReservation = (
   options?: UseMutationOptions<
     ApiResponse<Reservation>,
@@ -181,51 +138,31 @@ export const useConfirmReservation = (
   >
 ) => {
   const queryClient = useQueryClient();
-  const { onSuccess, ...restOptions } = options ?? {};
+  const { onSuccess, onError, onSettled, ...restOptions } = options ?? {};
 
   return useMutation({
-    mutationFn: ({
-      tableId,
-      reservationId,
-    }: {
-      tableId: string;
-      reservationId: string;
-    }) => confirmReservationApi(tableId, reservationId),
-
-    ...restOptions,
-
+    mutationFn: ({ tableId, reservationId }: { tableId: string; reservationId: string }) =>
+      confirmReservationApi(tableId, reservationId),
     onSuccess: async (data, variables, context) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.list(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.detail(
-            variables.tableId,
-            variables.reservationId
-          ),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.all(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.detail(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.lists(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["tables", "public", "available"],
-        }),
-      ]);
-
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.list(variables.tableId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.detail(variables.tableId, variables.reservationId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.all(),
+      });
       onSuccess?.(data, variables, context, undefined as any);
     },
+    onError,
+    onSettled,
+    ...restOptions,
   });
 };
 
-// ─── Cancel reservation ───────────────────────────────────────────────────────
-
+// ─── useCancelReservation ─────────────────────────────────────────────────────
+// PATCH /tables/:id/reservations/:reservationId/cancel
 export const useCancelReservation = (
   options?: UseMutationOptions<
     ApiResponse<Reservation>,
@@ -234,53 +171,31 @@ export const useCancelReservation = (
   >
 ) => {
   const queryClient = useQueryClient();
-  const { onSuccess, ...restOptions } = options ?? {};
+  const { onSuccess, onError, onSettled, ...restOptions } = options ?? {};
 
   return useMutation({
-    mutationFn: ({
-      tableId,
-      reservationId,
-      reason,
-    }: {
-      tableId: string;
-      reservationId: string;
-      reason?: string;
-    }) => cancelReservationApi(tableId, reservationId, { reason }),
-
-    ...restOptions,
-
+    mutationFn: ({ tableId, reservationId, reason }: { tableId: string; reservationId: string; reason?: string }) =>
+      cancelReservationApi(tableId, reservationId, { reason }),
     onSuccess: async (data, variables, context) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.list(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.detail(
-            variables.tableId,
-            variables.reservationId
-          ),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.all(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.detail(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.lists(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["tables", "public", "available"],
-        }),
-      ]);
-
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.list(variables.tableId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.detail(variables.tableId, variables.reservationId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.all(),
+      });
       onSuccess?.(data, variables, context, undefined as any);
     },
+    onError,
+    onSettled,
+    ...restOptions,
   });
 };
 
-// ─── Check in reservation (restaurant/admin) ──────────────────────────────────
-
+// ─── useCheckIn ───────────────────────────────────────────────────────────────
+// PATCH /tables/:id/reservations/:reservationId/checkin
 export const useCheckIn = (
   options?: UseMutationOptions<
     ApiResponse<Reservation>,
@@ -289,51 +204,38 @@ export const useCheckIn = (
   >
 ) => {
   const queryClient = useQueryClient();
-  const { onSuccess, ...restOptions } = options ?? {};
+  const { onSuccess, onError, onSettled, ...restOptions } = options ?? {};
 
   return useMutation({
-    mutationFn: ({
-      tableId,
-      reservationId,
-    }: {
-      tableId: string;
-      reservationId: string;
-    }) => checkInApi(tableId, reservationId),
-
-    ...restOptions,
-
+    mutationFn: ({ tableId, reservationId }: { tableId: string; reservationId: string }) =>
+      checkInApi(tableId, reservationId),
     onSuccess: async (data, variables, context) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.list(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.detail(
-            variables.tableId,
-            variables.reservationId
-          ),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.all(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.detail(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.lists(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["tables", "public", "available"],
-        }),
-      ]);
-
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.list(variables.tableId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.detail(variables.tableId, variables.reservationId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.all(),
+      });
+      // Table status might have changed
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.tables.detail(variables.tableId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.tables.lists(),
+      });
       onSuccess?.(data, variables, context, undefined as any);
     },
+    onError,
+    onSettled,
+    ...restOptions,
   });
 };
 
-// ─── Check out reservation (restaurant/admin) ────────────────────────────────
-
+// ─── useCheckOut ──────────────────────────────────────────────────────────────
+// PATCH /tables/:id/reservations/:reservationId/checkout
 export const useCheckOut = (
   options?: UseMutationOptions<
     ApiResponse<Reservation>,
@@ -342,51 +244,37 @@ export const useCheckOut = (
   >
 ) => {
   const queryClient = useQueryClient();
-  const { onSuccess, ...restOptions } = options ?? {};
+  const { onSuccess, onError, onSettled, ...restOptions } = options ?? {};
 
   return useMutation({
-    mutationFn: ({
-      tableId,
-      reservationId,
-    }: {
-      tableId: string;
-      reservationId: string;
-    }) => checkOutApi(tableId, reservationId),
-
-    ...restOptions,
-
+    mutationFn: ({ tableId, reservationId }: { tableId: string; reservationId: string }) =>
+      checkOutApi(tableId, reservationId),
     onSuccess: async (data, variables, context) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.list(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.detail(
-            variables.tableId,
-            variables.reservationId
-          ),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.all(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.detail(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.lists(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["tables", "public", "available"],
-        }),
-      ]);
-
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.list(variables.tableId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.detail(variables.tableId, variables.reservationId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.all(),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.tables.detail(variables.tableId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.tables.lists(),
+      });
       onSuccess?.(data, variables, context, undefined as any);
     },
+    onError,
+    onSettled,
+    ...restOptions,
   });
 };
 
-// ─── Mark reservation as no-show ──────────────────────────────────────────────
-
+// ─── useMarkNoShow ────────────────────────────────────────────────────────────
+// PATCH /tables/:id/reservations/:reservationId/noshow
 export const useMarkNoShow = (
   options?: UseMutationOptions<
     ApiResponse<Reservation>,
@@ -395,45 +283,28 @@ export const useMarkNoShow = (
   >
 ) => {
   const queryClient = useQueryClient();
-  const { onSuccess, ...restOptions } = options ?? {};
+  const { onSuccess, onError, onSettled, ...restOptions } = options ?? {};
 
   return useMutation({
-    mutationFn: ({
-      tableId,
-      reservationId,
-    }: {
-      tableId: string;
-      reservationId: string;
-    }) => markNoShowApi(tableId, reservationId),
-
-    ...restOptions,
-
+    mutationFn: ({ tableId, reservationId }: { tableId: string; reservationId: string }) =>
+      markNoShowApi(tableId, reservationId),
     onSuccess: async (data, variables, context) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.list(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.detail(
-            variables.tableId,
-            variables.reservationId
-          ),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reservations.all(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.detail(variables.tableId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.tables.lists(),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["tables", "public", "available"],
-        }),
-      ]);
-
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.list(variables.tableId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.detail(variables.tableId, variables.reservationId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.reservations.all(),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.tables.detail(variables.tableId),
+      });
       onSuccess?.(data, variables, context, undefined as any);
     },
+    onError,
+    onSettled,
+    ...restOptions,
   });
 };
