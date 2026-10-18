@@ -33,8 +33,8 @@ type TableListOptions = Omit<
   "queryKey" | "queryFn"
 >;
 
-// Public: for the customer reservation page.
-// Backend must expose GET /tables/available without admin authentication.
+// Public: customer reservation page.
+// Backend endpoint: GET /table/public (no authentication required).
 export const useGetAvailableTables = (options?: TableListOptions) => {
   return useQuery({
     queryKey: publicTableQueryKey,
@@ -78,8 +78,8 @@ export const useCreateTable = (
   const { onSuccess, ...restOptions } = options ?? {};
 
   return useMutation({
-    mutationFn: createTableApi,
     ...restOptions,
+    mutationFn: createTableApi,
     onSuccess: async (data, variables, context) => {
       await Promise.all([
         queryClient.invalidateQueries({
@@ -90,25 +90,20 @@ export const useCreateTable = (
         }),
       ]);
 
-      onSuccess?.(data, variables, context, undefined as any);
+      await onSuccess?.(data, variables, context);
     },
   });
 };
 
 export const useUpdateTable = (
-  options?: UseMutationOptions<
-    ApiResponse<Table>,
-    Error,
-    UpdateTableParams
-  >
+  options?: UseMutationOptions<ApiResponse<Table>, Error, UpdateTableParams>
 ) => {
   const queryClient = useQueryClient();
   const { onSuccess, ...restOptions } = options ?? {};
 
   return useMutation({
-    mutationFn: ({ id, data }: UpdateTableParams) =>
-      updateTableApi(id, data),
     ...restOptions,
+    mutationFn: ({ id, data }) => updateTableApi(id, data),
     onSuccess: async (data, variables, context) => {
       await Promise.all([
         queryClient.invalidateQueries({
@@ -122,7 +117,7 @@ export const useUpdateTable = (
         }),
       ]);
 
-      onSuccess?.(data, variables, context, undefined as any);
+      await onSuccess?.(data, variables, context);
     },
   });
 };
@@ -134,8 +129,8 @@ export const useDeleteTable = (
   const { onSuccess, ...restOptions } = options ?? {};
 
   return useMutation({
-    mutationFn: deleteTableApi,
     ...restOptions,
+    mutationFn: deleteTableApi,
     onSuccess: async (data, id, context) => {
       await Promise.all([
         queryClient.invalidateQueries({
@@ -150,7 +145,7 @@ export const useDeleteTable = (
         queryKey: queryKeys.tables.detail(id),
       });
 
-      onSuccess?.(data, id, context, undefined as any);
+      await onSuccess?.(data, id, context);
     },
   });
 };
@@ -166,12 +161,8 @@ export const useUpdateTableStatus = (
   const { onSuccess, ...restOptions } = options ?? {};
 
   return useMutation({
-    mutationFn: ({
-      id,
-      ...data
-    }: { id: string } & UpdateTableStatusParams) =>
-      updateTableStatusApi(id, data),
     ...restOptions,
+    mutationFn: ({ id, ...data }) => updateTableStatusApi(id, data),
     onSuccess: async (data, variables, context) => {
       await Promise.all([
         queryClient.invalidateQueries({
@@ -185,7 +176,7 @@ export const useUpdateTableStatus = (
         }),
       ]);
 
-      onSuccess?.(data, variables, context, undefined as any);
+      await onSuccess?.(data, variables, context);
     },
   });
 };
